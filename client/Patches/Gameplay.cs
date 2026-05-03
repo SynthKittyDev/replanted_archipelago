@@ -502,6 +502,16 @@ namespace ReplantedArchipelago.Patches
             }
         }
 
+        public static int GetCurrentWaveNumber(Board board)
+        {
+            int currentWave = board.mCurrentWave;
+            if (board.mApp.IsSurvivalMode() || board.mApp.GameMode == GameMode.ChallengeLastStand)
+            {
+                currentWave += ((board.mChallenge.mSurvivalStage) * board.GetNumWavesPerSurvivalStage());
+            }
+            return currentWave;
+        }
+
         [HarmonyPatch(typeof(Board), nameof(Board.AddCoin))] //Triggers when a Coin/loot is spawned
         public static class AddCoinPatch
         {
@@ -551,7 +561,7 @@ namespace ReplantedArchipelago.Patches
                         return false;
                     }
                 }
-                else if ((theCoinType == CoinType.PresentMinigames && (availableWaveLocations.Count == 0 || availableWaveLocations[0] > __instance.mCurrentWave)) || theCoinType == CoinType.PresentPuzzleMode || theCoinType == CoinType.PresentSurvivalMode) //If it's a present and we don't have queued up wavesanity checks, delete it
+                else if ((theCoinType == CoinType.PresentMinigames && (availableWaveLocations.Count == 0 || availableWaveLocations[0] > GetCurrentWaveNumber(__instance))) || theCoinType == CoinType.PresentPuzzleMode || theCoinType == CoinType.PresentSurvivalMode) //If it's a present and we don't have queued up wavesanity checks, delete it
                 {
                     return false;
                 }
@@ -626,11 +636,7 @@ namespace ReplantedArchipelago.Patches
                 {
                     foreach (int waveNumber in allWavesanityLocations)
                     {
-                        int currentWave = __instance.mBoard.mCurrentWave;
-                        if (__instance.mBoard.mApp.IsSurvivalMode() || __instance.mApp.GameMode == GameMode.ChallengeLastStand)
-                        {
-                            currentWave += ((__instance.mBoard.mChallenge.mSurvivalStage) * __instance.mBoard.GetNumWavesPerSurvivalStage());
-                        }
+                        int currentWave = GetCurrentWaveNumber(__instance.mBoard);
 
                         long locationId = (Data.GetLevelIdFromGameplayActivity(__instance.mApp) * 10000) + waveNumber;
                         if (waveNumber <= currentWave && APClient.apSession.Locations.AllMissingLocations.Contains(locationId))
@@ -670,11 +676,7 @@ namespace ReplantedArchipelago.Patches
                 {
                     foreach (int waveNumber in allWavesanityLocations)
                     {
-                        int currentWave = __instance.mBoard.mCurrentWave;
-                        if (__instance.mBoard.mApp.IsSurvivalMode() || __instance.mApp.GameMode == GameMode.ChallengeLastStand)
-                        {
-                            currentWave += ((__instance.mBoard.mChallenge.mSurvivalStage) * __instance.mBoard.GetNumWavesPerSurvivalStage());
-                        }
+                        int currentWave = GetCurrentWaveNumber(__instance.mBoard);
 
                         int locationId = (Data.GetLevelIdFromGameplayActivity(__instance.mApp) * 10000) + waveNumber;
                         if (waveNumber <= currentWave && APClient.apSession.Locations.AllMissingLocations.Contains(locationId))
@@ -789,11 +791,7 @@ namespace ReplantedArchipelago.Patches
         {
             private static void Postfix(Zombie __instance)
             {
-                int currentWave = __instance.mBoard.mCurrentWave;
-                if (__instance.mBoard.mApp.IsSurvivalMode() || __instance.mApp.GameMode == GameMode.ChallengeLastStand)
-                {
-                    currentWave += ((__instance.mBoard.mChallenge.mSurvivalStage) * __instance.mBoard.GetNumWavesPerSurvivalStage());
-                }
+                int currentWave = GetCurrentWaveNumber(__instance.mBoard);
 
                 if (availableWaveLocations.Count > 0 && availableWaveLocations[0] <= currentWave) //Wave location available
                 {

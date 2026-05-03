@@ -307,7 +307,8 @@ namespace ReplantedArchipelago
             { "SPR_Scary_Pot_5", 0.35f },
             { "SPR_Taco", 0.35f },
             { "Key", 0.125f },
-            { "SPR_WateringCan", 0.4f }
+            { "SPR_WateringCan", 0.4f },
+            { "SPR_CarKeys", 0.4f }
         };
 
         public static (Sprite sprite, float scale) GetSpriteAndScaleForItemDrop(ItemInfo itemInfo)

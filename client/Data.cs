@@ -140,7 +140,8 @@ namespace ReplantedArchipelago
             { 2, CoinType.CarKeys },
             { 4, CoinType.Shovel },
             { 5, CoinType.Almanac },
-            { 6, CoinType.WateringCan }
+            { 6, CoinType.WateringCan },
+            { 28, CoinType.CarKeys }
         };
 
         public static Dictionary<long, int> itemIdToPurchaseId = new Dictionary<long, int>
@@ -296,7 +297,6 @@ namespace ReplantedArchipelago
             }
             if (oldValue == newValue)
             {
-                multiplier = 1;
                 return "";
             }
 
