@@ -23,9 +23,9 @@ def can_access_level(state, world, player, level_data):
         access_item = level_data.unlock_item_name
     else:
         access_item = {"Adventure": None, "Mini-games": "Mini-games", "Cloudy Day": "Cloudy Day", "Puzzle": "Puzzle Mode", "Bonus Levels": "Bonus Levels", "Survival": "Survival Mode", "China": "China Access"}[level_data.type]
-    if access_item is not None and not state.has(access_item, player):
+    if (access_item is not None) and (not state.has(access_item, player)):
         return False
-
+            
     #Clears
     if level_data.type == "Mini-games" and world.options.minigame_levels.value in [1, 2] and world.minigame_unlocks[level_data.level_id] > 0:
         if not state.has("Mini-games Level Cleared", player, world.minigame_unlocks[level_data.level_id]):

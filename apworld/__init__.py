@@ -441,17 +441,17 @@ class PVZRWorld(World):
 
     def match_world_to_slot_data(self, slot_data) -> None: #Used for Universal Tracker support
         #UT Match player options
-        self.options.adventure_mode_progression.value = slot_data["adventure_mode_progression"]
-        self.options.minigame_levels.value = slot_data["minigame_levels"]
-        self.options.puzzle_levels.value = slot_data["puzzle_levels"]
-        self.options.survival_levels.value = slot_data["survival_levels"]
-        self.options.cloudy_day_levels.value = slot_data["cloudy_day_levels"]
-        self.options.bonus_levels.value = slot_data["bonus_levels"]
-        self.options.china_level.value = slot_data["china_level"]
-        self.options.easy_upgrade_plants.value = slot_data["easy_upgrade_plants"]
+        self.options.adventure_mode_progression.value = int(slot_data["adventure_mode_progression"])
+        self.options.minigame_levels.value = int(slot_data["minigame_levels"])
+        self.options.puzzle_levels.value = int(slot_data["puzzle_levels"])
+        self.options.survival_levels.value = int(slot_data["survival_levels"])
+        self.options.cloudy_day_levels.value = int(slot_data["cloudy_day_levels"])
+        self.options.bonus_levels.value = int(slot_data["bonus_levels"])
+        self.options.china_level.value = bool(slot_data["china_level"])
+        self.options.easy_upgrade_plants.value = bool(slot_data["easy_upgrade_plants"])
         self.options.shop_items.value = 96
-        self.options.progressive_sun_capacity_items.value = slot_data["progressive_sun_capacity_items"]
-        self.options.individual_tile_unlock_items.value = slot_data["individual_tile_unlock_items"]
+        self.options.progressive_sun_capacity_items.value = bool(slot_data["progressive_sun_capacity_items"])
+        self.options.individual_tile_unlock_items.value = bool(slot_data["individual_tile_unlock_items"])
 
         #UT Defaults
         self.included_levels = create_levels(self)
@@ -475,17 +475,17 @@ class PVZRWorld(World):
         self.cloudy_day_unlocks = {int(k): v for k, v in slot_data["cloudy_day_unlocks"].items()}
 
         #UT Goals
-        self.adventure_levels_goal = slot_data["adventure_levels_goal"]
-        self.adventure_areas_goal = slot_data["adventure_areas_goal"]
-        self.minigame_levels_goal = slot_data["minigame_levels_goal"]
-        self.puzzle_levels_goal = slot_data["puzzle_levels_goal"]
-        self.survival_levels_goal = slot_data["survival_levels_goal"]
-        self.cloudy_day_levels_goal = slot_data["cloudy_day_levels_goal"]
-        self.bonus_levels_goal = slot_data["bonus_levels_goal"]
-        self.adventure_areas_goal = slot_data["adventure_areas_goal"]
-        self.overall_levels_goal = slot_data["overall_levels_goal"]
-        self.taco_goal = slot_data["taco_goal"]
-        self.fast_goal = slot_data["fast_goal"]
+        self.adventure_levels_goal = int(slot_data["adventure_levels_goal"])
+        self.adventure_areas_goal = int(slot_data["adventure_areas_goal"])
+        self.minigame_levels_goal = int(slot_data["minigame_levels_goal"])
+        self.puzzle_levels_goal = int(slot_data["puzzle_levels_goal"])
+        self.survival_levels_goal = int(slot_data["survival_levels_goal"])
+        self.cloudy_day_levels_goal = int(slot_data["cloudy_day_levels_goal"])
+        self.bonus_levels_goal = int(slot_data["bonus_levels_goal"])
+        self.adventure_areas_goal = int(slot_data["adventure_areas_goal"])
+        self.overall_levels_goal = int(slot_data["overall_levels_goal"])
+        self.taco_goal = int(slot_data["taco_goal"])
+        self.fast_goal = int(slot_data["fast_goal"])
 
         #UT Zombie randomisation
         if slot_data["zombie_map"] != {}:
@@ -631,7 +631,7 @@ class PVZRWorld(World):
     
     def create_item(self, name: str) -> PVZRItem:
         try:
-            if name in self.progression_item_names + self.preplaced_progression:
+            if name in self.starting_items or name in self.preplaced_progression or name in self.progression_item_names:
                 item_classification = ItemClassification.progression
             elif name in self.useful_item_names:
                 item_classification = ItemClassification.useful
@@ -640,7 +640,7 @@ class PVZRWorld(World):
             else:
                 item_classification = ItemClassification.filler
         except:
-            item_classification = ItemClassification.filler
+            item_classification = ItemClassification.progression
 
         return PVZRItem(name, item_classification, item_ids[name], self.player)
 
