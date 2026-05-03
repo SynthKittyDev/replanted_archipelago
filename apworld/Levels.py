@@ -238,9 +238,7 @@ class Level:
                 total_sun_capacity = 150 * (2 ** state.count("Progressive Sun Capacity", player))
                 unlocked_plants = {plant for plant in unlocked_plants if world.all_plants[plant].cost * 1.1 <= total_sun_capacity}
 
-                if (self.type in ["Survival", "Cloudy Day"] or self.name in ["Mini-games: Zombiquarium"]) and total_sun_capacity < 1000:
-                    return False
-                elif self.name == "Mini-games: Slot Machine" and total_sun_capacity < 2000:
+                if (self.type in ["Survival", "Cloudy Day"] and total_sun_capacity < 1000:
                     return False
                 elif self.name == "Mini-games: Last Stand" and total_sun_capacity < 5000:
                     return False
