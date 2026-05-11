@@ -234,7 +234,7 @@ class Level:
                 self.plant_combinations = self.create_plant_combinations(world)
             unlocked_plants = {plant for plant in world.progression_plants if (state.has(plant, player) or plant in self.forced_plants)}
 
-            if (not ignore_locked_tiles) and world.options.progressive_sun_capacity_items.value: #Check plants are affordable with sun cap limits
+            if (not self.ignore_locked_tiles) and world.options.progressive_sun_capacity_items.value: #Check plants are affordable with sun cap limits
                 total_sun_capacity = 150 * (2 ** state.count("Progressive Sun Capacity", player))
                 unlocked_plants = {plant for plant in unlocked_plants if world.all_plants[plant].cost * 1.1 <= total_sun_capacity}
 
