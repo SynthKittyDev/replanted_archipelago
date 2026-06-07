@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Options import Choice, Range, Toggle, PerGameCommonOptions, DeathLink, OptionCounter, OptionGroup
+from Options import Choice, Range, Toggle, PerGameCommonOptions, DeathLink, OptionCounter, OptionGroup, OptionSet
 
 class AdventureModeProgression(Choice):
     """
@@ -24,6 +24,19 @@ class HugeWaveLocations(Toggle):
     """
     display_name = "Huge Wave Locations"
     default = True
+
+class WavesanityLocations(Range):
+    """
+    Include additional locations for small waves.
+    This may add a lot of filler items. Make sure to consider any other players in your multiworld before increasing this number.
+
+    This number will be automatically increased if there aren't enough locations available to place all of your items.
+    This number will be automatically decreased if there aren't enough levels enabled.
+    """
+    display_name = "Wavesanity Locations"
+    range_start = 0
+    range_end = 2272
+    default = 0    
 
 class ZombieRandomisation(Toggle):
     """
@@ -83,18 +96,19 @@ class ZombieRandomisedModes(OptionCounter):
     Any mode set to 1 will feature levels with randomised selection of zombies.
     Any mode set to 0 will contain its usual zombies from the original game.
 
-    *Survival, Cloudy Day and Bonus Levels will be forced to 0 if goty_compatability_mode is enabled.
+    *Survival, Cloudy Day, Bonus Levels and China will all be forced to 0 if goty_compatability_mode is enabled.
     """
     display_name = "Zombie Randomised Modes"
     min = 0
     max = 1
-    valid_keys = ["Adventure", "Mini-games", "Survival", "Cloudy Day", "Bonus Levels"]
+    valid_keys = ["Adventure", "Mini-games", "Survival", "Cloudy Day", "Bonus Levels", "China"]
     default = {
         "Adventure": 1,
         "Mini-games": 1,
         "Survival": 1,
         "Cloudy Day": 0,
-        "Bonus Levels": 1
+        "Bonus Levels": 1,
+        "China": 0
     }
 
 class ConveyorRandomisation(Toggle):
@@ -127,6 +141,19 @@ class MaintainVanillaProjectileStrength(Toggle):
     """
     display_name = "Maintain Vanilla Projectile Strength"
     default = False  
+
+class PlantStatRandomisationBlacklist(OptionSet):
+    """
+    Plants named here will avoid being affected by plant stat randomisation.
+    For example, you may add "Sunflower" to ensure that Sunflower uses its default stats.
+
+    This option only matters if plant_stat_randomisation is set to true.
+    If plant_stat_randomisation is set to false then no plant stat randomisation will happen.
+ 
+    Valid plant names are: "Peashooter", "Sunflower", "Cherry Bomb", "Wall-nut", "Potato Mine", "Snow Pea", "Chomper", "Repeater", "Puff-shroom", "Sun-shroom", "Fume-shroom", "Grave Buster", "Hypno-shroom", "Scaredy-shroom", "Ice-shroom", "Doom-shroom", "Lily Pad", "Squash", "Threepeater", "Tangle Kelp", "Jalapeno", "Spikeweed", "Torchwood", "Tall-nut", "Sea-shroom", "Plantern", "Cactus", "Blover", "Split Pea", "Starfruit", "Pumpkin", "Magnet-shroom", "Cabbage-pult", "Flower Pot", "Kernel-pult", "Coffee Bean", "Garlic", "Umbrella Leaf", "Marigold", "Melon-pult", "Gatling Pea", "Twin Sunflower", "Gloom-shroom", "Cattail", "Winter Melon", "Gold Magnet", "Spikerock", "Cob Cannon"
+    """
+    display_name = "Plant Stat Randomisation Blacklist"
+    valid_keys = ["Peashooter", "Sunflower", "Cherry Bomb", "Wall-nut", "Potato Mine", "Snow Pea", "Chomper", "Repeater", "Puff-shroom", "Sun-shroom", "Fume-shroom", "Grave Buster", "Hypno-shroom", "Scaredy-shroom", "Ice-shroom", "Doom-shroom", "Lily Pad", "Squash", "Threepeater", "Tangle Kelp", "Jalapeno", "Spikeweed", "Torchwood", "Tall-nut", "Sea-shroom", "Plantern", "Cactus", "Blover", "Split Pea", "Starfruit", "Pumpkin", "Magnet-shroom", "Cabbage-pult", "Flower Pot", "Kernel-pult", "Coffee Bean", "Garlic", "Umbrella Leaf", "Marigold", "Melon-pult", "Gatling Pea", "Twin Sunflower", "Gloom-shroom", "Cattail", "Winter Melon", "Gold Magnet", "Spikerock", "Cob Cannon"]
 
 class MinigameLevels(Choice):
     """
@@ -441,10 +468,26 @@ class RandomSeedFiller(Toggle):
 
 class ZombieFreezeFiller(Toggle):
     """
-    Determines whether to include "Mass Zombie Freeze" filler items.
+    Determines whether to include "Instant Zombie Freeze" filler items.
     This item instantly freezes all zombies on the lawn.
     """
     display_name = "Zombie Freeze Filler"
+    default = False
+
+class ZombieHypnosisFiller(Toggle):
+    """
+    Determines whether to include "Instant Zombie Hypnosis" filler items.
+    This item instantly hypnotises all zombies on the lawn.
+    """
+    display_name = "Zombie Hypnosis Filler"
+    default = False    
+
+class SunBurstFiller(Toggle):
+    """
+    Determines whether to include "Sun Burst" filler items.
+    This item causes a burst of 75-150 sun to appear.
+    """
+    display_name = "Sun Burst Filler"
     default = False
 
 class EasyUpgradePlants(Toggle):
@@ -581,6 +624,89 @@ class ZombieShuffleTrapWeight(Range):
     range_end = 100
     default = 50
 
+class ZombieCaffeineTrapWeight(Range):
+    """
+    This trap gives a speed boost to all zombies on the lawn.
+    A higher number means that you are more likely to see the given trap. A value of 0 means the trap will not appear.
+    """
+    display_name = "Zombie Caffeine Trap Weight"
+    range_start = 0
+    range_end = 100
+    default = 50
+
+class RVTrapWeight(Range):
+    """
+    This trap causes an RV to be thrown at your lawn, crushing some of your plants.
+    A higher number means that you are more likely to see the given trap. A value of 0 means the trap will not appear.
+    """
+    display_name = "RV Trap Weight"
+    range_start = 0
+    range_end = 100
+    default = 50
+
+class CraterTrapWeight(Range):
+    """
+    This trap adds three random craters to your lawn.
+    A higher number means that you are more likely to see the given trap. A value of 0 means the trap will not appear.
+    """
+    display_name = "Crater Trap Weight"
+    range_start = 0
+    range_end = 100
+    default = 50
+
+class LawnFlipTrapWeight(Range):
+    """
+    This trap flips your lawn - whatever was at the back, is now at the front, and vice versa.
+    A higher number means that you are more likely to see the given trap. A value of 0 means the trap will not appear.
+    """
+    display_name = "Lawn Flip Trap Weight"
+    range_start = 0
+    range_end = 100
+    default = 50
+
+class LawnRandomiserTrapWeight(Range):
+    """
+    This trap randomises your lawn - every active plant is transformed into a completely random one. If you're lucky, this could turn out to be a positive thing!
+    A higher number means that you are more likely to see the given trap. A value of 0 means the trap will not appear.
+    """
+    display_name = "Lawn Randomiser Trap Weight"
+    range_start = 0
+    range_end = 100
+    default = 50
+
+class CostumeChances(OptionCounter):
+    """
+    Determines the odds out of 10000 that an easter egg costume is used whenever a plant or zombie appears.
+    Retro Peashooter is exclusive to pre-ordered versions of the game.
+    Zombies will always use their Chinese variants when playing on The Great Wall.
+    Due to limitations in the game, you may see the wrong heads and arms pop off defeated zombies when using this feature.
+
+    *These are all set to 0 if goty_compatability_mode is enabled.
+    """
+    display_name = "Costume Chances"
+    min = 0
+    max = 10000
+    valid_keys = ["Peashooter (Retro)", "Peashooter (Winter)", "Wall-nut (Winter)", "Cabbage-pult (PvZ2)", "Flower Pot (China)", "Zombie (China)", "Zombie (Retro)", "Zombie (Winter)", "Flag (China)", "Conehead (China)", "Conehead (Headcrab)", "Conehead (Winter)", "Buckethead (China)", "Polevaulter (China)", "Football (China)", "Bungee (China)", "Backup Dancer (Original)"]
+    default = {
+        "Peashooter (Retro)": 0,
+        "Peashooter (Winter)": 0,
+        "Wall-nut (Winter)": 0,
+        "Cabbage-pult (PvZ2)": 65,
+        "Flower Pot (China)": 0,
+        "Zombie (China)": 0,
+        "Zombie (Retro)": 0,
+        "Zombie (Winter)": 0,
+        "Flag (China)": 0, 
+        "Conehead (China)": 0,
+        "Conehead (Headcrab)": 0, 
+        "Conehead (Winter)": 0, 
+        "Buckethead (China)": 0, 
+        "Polevaulter (China)": 0, 
+        "Football (China)": 0, 
+        "Bungee (China)": 0,
+        "Backup Dancer (Original)": 300
+    }
+    
 class GotyCompatabilityMode(Toggle):
     """
     This APWorld is primarily designed to be used with Plants vs. Zombies: Replanted.
@@ -629,7 +755,7 @@ class ProgressiveSunCapacityItems(Toggle):
     display_name = "Progressive Sun Capacity Items"
     default = False
 
-class IndividualTileUnlockItems(Toggle):
+class IndividualTileUnlockItems(Choice):
     """
     Locks planting on each individual lawn tile behind receiving a corresponding item.
     You will start the game with a random assortment of tiles unlocked.
@@ -637,13 +763,15 @@ class IndividualTileUnlockItems(Toggle):
     This can make the game much more difficult, especially when combined with other forms of randomisation.
     You may be expected to exploit lawn mowers and zombie spawning patterns in order to progress.
 
-    This adds ~42 items to the item pool and is recommended as a unique challenge for experienced players only.
-
-    This option is brand new and likely requires further testing and balancing to keep things fun and fair.
-    Enable at your own risk, but if you do, please let me know how you get on!
+    - off: Tiles will not be locked behind items.
+    - light: You will start with 5-6 tiles per row. All other tiles must be unlocked.
+    - maximum: You will start with 1-2 tiles per row. All other tiles must be unlocked.
     """
     display_name = "Individual Tile Unlock Items"
-    default = False        
+    option_off = 0
+    option_light = 1
+    option_maximum = 2
+    default = 0
 
 @dataclass
 class PVZROptions(PerGameCommonOptions):
@@ -659,6 +787,7 @@ class PVZROptions(PerGameCommonOptions):
     bonus_levels: BonusLevels
     china_level: ChinaLevel
     huge_wave_locations: HugeWaveLocations
+    wavesanity_locations: WavesanityLocations
     shop_behaviour: ShopBehaviour
     shop_items: ShopItems
     adventure_levels_goal: AdventureLevelsGoal
@@ -679,16 +808,20 @@ class PVZROptions(PerGameCommonOptions):
     zombie_weight_randomisation: ZombieWeightRandomisation
     plant_stat_randomisation: PlantStatRandomisation
     maintain_vanilla_projectile_strength: MaintainVanillaProjectileStrength
+    plant_stat_randomisation_blacklist: PlantStatRandomisationBlacklist
     easy_upgrade_plants: EasyUpgradePlants
     imitater_behaviour: ImitaterBehaviour
     disable_storm_flashes: DisableStormFlashes
     music_shuffle: MusicShuffle
+    costume_chances: CostumeChances
     zen_garden_items: ZenGardenItems
     starting_sun_upgrades: StartingSunUpgrades
     maximum_sun_upgrades: MaximumSunUpgrades
     mower_reward_upgrades: MowerRewardUpgrades
     random_seed_filler: RandomSeedFiller
     zombie_freeze_filler: ZombieFreezeFiller
+    zombie_hypnosis_filler: ZombieHypnosisFiller
+    sun_burst_filler: SunBurstFiller
     starting_plants: StartingPlants
     starting_seed_slots: StartingSeedSlots
     early_sunflower: EarlySunflower
@@ -701,14 +834,19 @@ class PVZROptions(PerGameCommonOptions):
     seed_packet_cooldown_trap_weight: SeedPacketCooldownTrapWeight
     zombie_ambush_trap_weight: ZombieAmbushTrapWeight
     zombie_shuffle_trap_weight: ZombieShuffleTrapWeight
+    zombie_caffeine_trap_weight: ZombieCaffeineTrapWeight
+    rv_trap_weight: RVTrapWeight
+    crater_trap_weight: CraterTrapWeight
+    lawn_flip_trap_weight: LawnFlipTrapWeight
+    lawn_randomiser_trap_weight: LawnRandomiserTrapWeight
 
 OPTION_GROUPS = [
     OptionGroup("AP Settings", [GotyCompatabilityMode, DeathLink, RingLink, EnergyLink]),
     OptionGroup("Level Access", [AdventureModeProgression, MinigameLevels, PuzzleLevels, SurvivalLevels, CloudyDayLevels, BonusLevels, ChinaLevel]),    
-    OptionGroup("Extra Locations", [HugeWaveLocations, ShopBehaviour, ShopItems]),
+    OptionGroup("Extra Locations", [HugeWaveLocations, WavesanityLocations, ShopBehaviour, ShopItems]),
     OptionGroup("Goal", [AdventureLevelsGoal, AdventureAreasGoal, MinigameLevelsGoal, PuzzleLevelsGoal, SurvivalLevelsGoal, CloudyDayLevelsGoal, BonusLevelsGoal, TotalLevelsGoal, TacoHuntItems, TacoHuntPercentage, FastGoal]),
-    OptionGroup("Zombie & Plant Randomisation", [ConveyorRandomisation, ZombieRandomisation, RandomisedZombies, ZombieRandomisedModes, ZombieWeightRandomisation, PlantStatRandomisation, MaintainVanillaProjectileStrength]),
-    OptionGroup("Gameplay Tweaks", [EasyUpgradePlants, ImitaterBehaviour, DisableStormFlashes, MusicShuffle]),
-    OptionGroup("Item Generation", [ZenGardenItems, StartingSunUpgrades, MaximumSunUpgrades, MowerRewardUpgrades, RandomSeedFiller, ZombieFreezeFiller, StartingPlants, StartingSeedSlots, EarlySunflower, EarlyShovel, EarlyZenGarden, ProgressiveSunCapacityItems, IndividualTileUnlockItems]),
-    OptionGroup("Traps", [TrapPercentage, MowerDeployTrapWeight, SeedPacketCooldownTrapWeight, ZombieAmbushTrapWeight, ZombieShuffleTrapWeight]),
+    OptionGroup("Zombie & Plant Randomisation", [ConveyorRandomisation, ZombieRandomisation, RandomisedZombies, ZombieRandomisedModes, ZombieWeightRandomisation, PlantStatRandomisation, MaintainVanillaProjectileStrength, PlantStatRandomisationBlacklist]),
+    OptionGroup("Game Tweaks", [EasyUpgradePlants, ImitaterBehaviour, DisableStormFlashes, MusicShuffle, CostumeChances]),
+    OptionGroup("Item Generation", [ZenGardenItems, StartingSunUpgrades, MaximumSunUpgrades, MowerRewardUpgrades, RandomSeedFiller, ZombieFreezeFiller, ZombieHypnosisFiller, SunBurstFiller, StartingPlants, StartingSeedSlots, EarlySunflower, EarlyShovel, EarlyZenGarden, ProgressiveSunCapacityItems, IndividualTileUnlockItems]),
+    OptionGroup("Traps", [TrapPercentage, MowerDeployTrapWeight, SeedPacketCooldownTrapWeight, ZombieAmbushTrapWeight, ZombieShuffleTrapWeight, ZombieCaffeineTrapWeight, RVTrapWeight, CraterTrapWeight, LawnFlipTrapWeight, LawnRandomiserTrapWeight]),
 ]

@@ -1,4 +1,4 @@
-GEN_VERSION = "1.7" #Used to match with client
+GEN_VERSION = "1.8" #Used to match with client
 from BaseClasses import Item, ItemClassification
 from worlds.AutoWorld import WebWorld, World
 from .Items import PVZRItem, item_ids
@@ -125,7 +125,7 @@ class PVZRWorld(World):
     def pick_trap_items(self, number_of_traps) -> list[str]:
         trap_items = []
 
-        trap_weights = {"Zombie Ambush Trap": self.options.zombie_ambush_trap_weight.value, "Mower Deploy Trap": self.options.mower_deploy_trap_weight.value, "Seed Packet Cooldown Trap": self.options.seed_packet_cooldown_trap_weight.value, "Zombie Shuffle Trap": self.options.zombie_shuffle_trap_weight.value}
+        trap_weights = {"Zombie Ambush Trap": self.options.zombie_ambush_trap_weight.value, "Mower Deploy Trap": self.options.mower_deploy_trap_weight.value, "Seed Packet Cooldown Trap": self.options.seed_packet_cooldown_trap_weight.value, "Zombie Shuffle Trap": self.options.zombie_shuffle_trap_weight.value, "RV Trap": self.options.rv_trap_weight.value, "Lawn Flip Trap": self.options.lawn_flip_trap_weight.value, "Lawn Randomiser Trap": self.options.lawn_randomiser_trap_weight.value, "Zombie Caffeine Trap": self.options.zombie_caffeine_trap_weight.value, "Crater Trap": self.options.crater_trap_weight.value}
         if sum(list(trap_weights.values())) != 0:
             for i in range(0, number_of_traps):
                 trap_items.append(self.random.choices(list(trap_weights.keys()), weights=list(trap_weights.values()), k=1)[0])
@@ -149,35 +149,6 @@ class PVZRWorld(World):
 
         return sorted(filler_items)
 
-    def select_wavesanity_locations(self, number_of_locations, huge_waves) -> list[int]:
-        included_wave_locations = []
-        potential_wave_locations = []
-        for level in self.included_levels:
-            level_data = self.included_levels[level]
-            waves_per_flag = level_data.waves
-            if level_data.flags > 1:
-                waves_per_flag = level_data.waves/level_data.flags
-            for wave_number in range(1, level_data.waves):
-                if wave_number % waves_per_flag == 0:
-                    if huge_waves:
-                        included_wave_locations.append({"level_id": level_data.level_id, "wave_number": wave_number})
-                    else:
-                        potential_wave_locations.append({"level_id": level_data.level_id, "wave_number": wave_number})
-                else:
-                    potential_wave_locations.append({"level_id": level_data.level_id, "wave_number": wave_number})
-        self.random.shuffle(potential_wave_locations)
-
-        if number_of_locations == -1:
-            number_of_locations = len(potential_wave_locations)
-
-        included_wave_locations += potential_wave_locations[:min(len(potential_wave_locations), number_of_locations)]
-
-        self.wavesanity_map = {}
-        for location in included_wave_locations:
-            if not location["level_id"] in self.wavesanity_map:
-                self.wavesanity_map[location["level_id"]] = []
-            self.wavesanity_map[location["level_id"]].append(location["wave_number"])
-
     def create_items(self) -> None:
         if not hasattr(self.multiworld, "re_gen_passthrough"):
             if self.options.early_sunflower.value:
@@ -198,7 +169,7 @@ class PVZRWorld(World):
             self.trap_item_names: list[str] = []
 
             #Restrictive start prevention if playing a solo seed
-            if self.multiworld.players == 1 and self.options.shop_behaviour.value > 0 and (self.options.zombie_randomisation.value or self.options.shop_items.value < 8 or self.options.plant_stat_randomisation.value or self.options.individual_tile_unlock_items.value or self.options.progressive_sun_capacity_items.value):
+            if self.multiworld.players == 1 and self.options.shop_behaviour.value > 0 and self.options.wavesanity_locations.value < 100 and (self.options.zombie_randomisation.value or self.options.shop_items.value < 8 or self.options.plant_stat_randomisation.value or self.options.individual_tile_unlock_items.value or self.options.progressive_sun_capacity_items.value):
                 #Puts shop access in sphere 1
                 self.preplaced_progression.append(self.get_shop_unlock_item_name())
                 self.progression_item_names.remove(self.get_shop_unlock_item_name())
@@ -250,6 +221,10 @@ class PVZRWorld(World):
                 self.options.china_level.value = 0
                 self.options.randomised_zombies.value["TrashCan"] = 0
                 self.options.zombie_randomised_modes.value["Survival"] = 0
+                self.options.zombie_randomised_modes.value["China"] = 0
+                self.options.cloudy_day_levels_goal.value = 0
+                self.options.bonus_levels_goal.value = 0
+                self.options.costume_chances.value = {}
 
             #Setup level unlock order randomisation
             self.minigame_unlocks = { 51: 0, 52: 0, 53: 0, 54: 1, 55: 2, 56: 3, 57: 4, 58: 5, 59: 6, 60: 7, 61: 8, 62: 9, 63: 10, 64: 11, 65: 12, 66: 13, 67: 14, 68: 15, 69: 16, 70: 17}
@@ -407,7 +382,7 @@ class PVZRWorld(World):
                 self.starting_items.append("China Access")
 
             #Starting tiles
-            if self.options.individual_tile_unlock_items.value:
+            if self.options.individual_tile_unlock_items.value != 0:
                 back_columns = [1, 2, 3, 4]
                 front_columns = [5, 6, 7, 8, 9]
                 starting_tiles = {}
@@ -416,6 +391,11 @@ class PVZRWorld(World):
                         starting_tiles_in_row = {self.random.randint(1, 4), self.random.randint(5, 9)}
                     else:
                         starting_tiles_in_row = {self.random.randint(1, 4), self.random.randint(1, 9)}
+
+                    if self.options.individual_tile_unlock_items.value == 1: #Easy mode
+                        while len(starting_tiles_in_row) < self.random.randint(5, 6):
+                            starting_tiles_in_row.add(self.random.randint(1, 9))
+
                     for column_index in starting_tiles_in_row:
                         self.starting_items.append(f"Tile Unlock: Row #{row_index}, Column #{column_index}")
 
@@ -433,11 +413,39 @@ class PVZRWorld(World):
             if self.options.shop_behaviour.value > 0:
                 enabled_locations += self.options.shop_items.value
 
-            #Account for overflow by adding extra locations
-            number_of_wavesanity_locations = 0
-            if len(self.progression_item_names + self.useful_item_names) > enabled_locations:
-                number_of_wavesanity_locations += len(self.progression_item_names + self.useful_item_names) - enabled_locations
-            self.select_wavesanity_locations(number_of_wavesanity_locations, self.options.huge_wave_locations.value)
+            #Wavesanity
+            potential_wave_locations = []
+            included_wave_locations = []
+            for level in self.included_levels:
+                level_data = self.included_levels[level]
+                waves_per_flag = level_data.waves
+                if level_data.flags > 1:
+                    waves_per_flag = level_data.waves/level_data.flags
+                for wave_number in range(1, level_data.waves):
+                    if wave_number % waves_per_flag == 0:
+                        if self.options.huge_wave_locations.value:
+                            included_wave_locations.append({"level_id": level_data.level_id, "wave_number": wave_number})
+                        else:
+                            potential_wave_locations.append({"level_id": level_data.level_id, "wave_number": wave_number})
+                    else:
+                        potential_wave_locations.append({"level_id": level_data.level_id, "wave_number": wave_number})
+            self.random.shuffle(potential_wave_locations)
+
+            if self.options.wavesanity_locations.value > len(potential_wave_locations): #If option was set higher than the number of available checks, bring it down
+                self.options.wavesanity_locations.value = len(potential_wave_locations)
+
+            #Account for overflow
+            enabled_locations += self.options.wavesanity_locations.value
+            if len(self.progression_item_names + self.useful_item_names) > enabled_locations: #More items than locations
+                self.options.wavesanity_locations.value += len(self.progression_item_names + self.useful_item_names) - enabled_locations #Increase the option value
+
+            included_wave_locations += potential_wave_locations[:self.options.wavesanity_locations.value] #Add chosen number of small waves
+
+            self.wavesanity_map = {}
+            for location in included_wave_locations:
+                if not location["level_id"] in self.wavesanity_map:
+                    self.wavesanity_map[location["level_id"]] = []
+                self.wavesanity_map[location["level_id"]].append(location["wave_number"])
 
     def match_world_to_slot_data(self, slot_data) -> None: #Used for Universal Tracker support
         #UT Match player options
@@ -462,10 +470,17 @@ class PVZRWorld(World):
         self.plantable_plants = []        
         self.wall_plants = [{"Wall-nut"}, {"Tall-nut"}, {"Pumpkin"}]
         self.starting_plants = []
-        self.select_wavesanity_locations(-1, True)
         self.starting_items = []
         self.progression_item_names = []
         self.useful_item_names = []
+
+        #Wavesanity
+        self.wavesanity_map = {}
+        for level in self.included_levels:
+            level_data = self.included_levels[level]
+            self.wavesanity_map[level_data.level_id] = []
+            for wave_number in range(1, level_data.waves):
+                self.wavesanity_map[level_data.level_id].append(wave_number)
 
         #UT Level unlock orders
         self.minigame_unlocks = {int(k): v for k, v in slot_data["minigame_unlocks"].items()}
@@ -604,7 +619,7 @@ class PVZRWorld(World):
                 plant_data = self.all_plants[plant_name]
                 self.sun_prices[plant_data.plant_id] = plant_data.cost
 
-        return {"music_map": self.music_map, "starting_inv_count": len(self.starting_items), "adventure_mode_progression": self.options.adventure_mode_progression.value, "shop_prices": self.shop_prices, "minigame_unlocks": self.minigame_unlocks, "survival_unlocks": self.survival_unlocks, "izombie_unlocks": self.izombie_unlocks, "vasebreaker_unlocks": self.vasebreaker_unlocks, "gen_version": GEN_VERSION, "imitater_open": self.options.imitater_behaviour.value == 1, "disable_storm_flashes": self.options.disable_storm_flashes.value, "adventure_areas_goal": self.adventure_areas_goal, "minigame_levels_goal": self.minigame_levels_goal, "puzzle_levels_goal": self.puzzle_levels_goal, "survival_levels_goal": self.survival_levels_goal, "deathlink_enabled": self.options.death_link.value, "fast_goal": self.fast_goal, "adventure_levels_goal": self.adventure_levels_goal, "easy_upgrade_plants": self.options.easy_upgrade_plants.value, "cloudy_day_levels_goal": self.cloudy_day_levels_goal, "bonus_levels_goal": self.bonus_levels_goal, "overall_levels_goal": self.overall_levels_goal, "cloudy_day_unlocks": self.cloudy_day_unlocks, "zombie_map": self.zombie_map, "minigame_levels": self.options.minigame_levels.value, "puzzle_levels": self.options.puzzle_levels.value, "survival_levels": self.options.survival_levels.value, "bonus_levels": self.options.bonus_levels.value, "cloudy_day_levels": self.options.cloudy_day_levels.value, "sun_prices": self.sun_prices, "recharge_times": self.recharge_times, "firing_rates": self.firing_rates, "projectile_damages": self.projectile_damages, "plant_healths": self.plant_healths, "conveyor_map": self.conveyor_map, "sun_per_upgrade": self.sun_per_upgrade, "energylink_enabled": self.options.energy_link.value, "taco_goal": self.taco_goal, "china_level": self.options.china_level.value, "zombie_weight_map": self.zombie_weight_map, "zombie_weight_randomisation": self.options.zombie_weight_randomisation.value, "ringlink_enabled": self.options.ring_link.value, "progressive_sun_capacity_items": self.options.progressive_sun_capacity_items.value, "individual_tile_unlock_items": self.options.individual_tile_unlock_items.value, "wavesanity_map": self.wavesanity_map}
+        return {"music_map": self.music_map, "starting_inv_count": len(self.starting_items), "adventure_mode_progression": self.options.adventure_mode_progression.value, "shop_prices": self.shop_prices, "minigame_unlocks": self.minigame_unlocks, "survival_unlocks": self.survival_unlocks, "izombie_unlocks": self.izombie_unlocks, "vasebreaker_unlocks": self.vasebreaker_unlocks, "gen_version": GEN_VERSION, "imitater_open": self.options.imitater_behaviour.value == 1, "disable_storm_flashes": self.options.disable_storm_flashes.value, "adventure_areas_goal": self.adventure_areas_goal, "minigame_levels_goal": self.minigame_levels_goal, "puzzle_levels_goal": self.puzzle_levels_goal, "survival_levels_goal": self.survival_levels_goal, "deathlink_enabled": self.options.death_link.value, "fast_goal": self.fast_goal, "adventure_levels_goal": self.adventure_levels_goal, "easy_upgrade_plants": self.options.easy_upgrade_plants.value, "cloudy_day_levels_goal": self.cloudy_day_levels_goal, "bonus_levels_goal": self.bonus_levels_goal, "overall_levels_goal": self.overall_levels_goal, "cloudy_day_unlocks": self.cloudy_day_unlocks, "zombie_map": self.zombie_map, "minigame_levels": self.options.minigame_levels.value, "puzzle_levels": self.options.puzzle_levels.value, "survival_levels": self.options.survival_levels.value, "bonus_levels": self.options.bonus_levels.value, "cloudy_day_levels": self.options.cloudy_day_levels.value, "sun_prices": self.sun_prices, "recharge_times": self.recharge_times, "firing_rates": self.firing_rates, "projectile_damages": self.projectile_damages, "plant_healths": self.plant_healths, "conveyor_map": self.conveyor_map, "sun_per_upgrade": self.sun_per_upgrade, "energylink_enabled": self.options.energy_link.value, "taco_goal": self.taco_goal, "china_level": self.options.china_level.value, "zombie_weight_map": self.zombie_weight_map, "zombie_weight_randomisation": self.options.zombie_weight_randomisation.value, "ringlink_enabled": self.options.ring_link.value, "progressive_sun_capacity_items": self.options.progressive_sun_capacity_items.value, "individual_tile_unlock_items": self.options.individual_tile_unlock_items.value, "wavesanity_map": self.wavesanity_map, "costume_chances": self.options.costume_chances.value}
 
     @staticmethod
     def interpret_slot_data(slot_data: dict[str, object]) -> dict[str, object]:
@@ -621,11 +636,17 @@ class PVZRWorld(World):
                 return "Random Seed Packet"
         elif random >= 0.7:
             if self.options.zombie_freeze_filler.value:
-                return "Mass Zombie Freeze"
+                return "Instant Zombie Freeze"
         elif random >= 0.4:
             if self.options.zen_garden_items.value:
                 items = ["Fertilizer", "Tree Food", "Bug Spray", "Chocolate", "Zen Garden Sprout"]
                 weights = [3, 2, 1, 1, 3]
+        elif random >= 0.35:
+            if self.options.zombie_hypnosis_filler.value:
+                return "Instant Zombie Hypnosis"
+        elif random >= 0.3:
+            if self.options.sun_burst_filler.value:
+                return "Sun Burst"
 
         return self.random.choices(items, weights=weights, k=1)[0]
     
@@ -656,7 +677,7 @@ class PVZRWorld(World):
         create_regions(self)        
 
     def write_spoiler(self, spoiler_handle: object) -> None:
-        spoiler_string = ""
+        spoiler_string = f"\nPlants vs. Zombies Spoiler ({self.multiworld.player_name[self.player]}):\n"
         
         if self.options.zombie_randomisation.value:
             spoiler_string += "\nRandomised Zombies:\n"

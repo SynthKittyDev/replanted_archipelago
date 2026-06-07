@@ -128,14 +128,14 @@ class Plant:
             else: #Buff
                 firing_cooldown_multiplier = base_number - (weighted_roll(world, maximum_firing_cooldown_mult_loss * 100, 2) / 100)
 
-            firing_cooldown_multiplier = max(0.2, firing_cooldown_multiplier)
-            if self.projectiles_per_shot > 2: #Can't shoot too fast
-                firing_cooldown_multiplier = max(0.45, firing_cooldown_multiplier) #Won't drop below 0.45
-
             self.firing_cooldown = round(self.unmodified.firing_cooldown * firing_cooldown_multiplier)
 
             if world.options.easy_upgrade_plants.value == False and self.upgrades_from in world.all_plants and self.projectiles == world.all_plants[self.upgrades_from].projectiles: #Stop firing cooldown from downgrading
                 self.firing_cooldown = min(round(world.all_plants[self.upgrades_from].firing_cooldown * 1.2), self.firing_cooldown)
+
+            firing_cooldown_multiplier = max(0.3, firing_cooldown_multiplier)
+            if self.projectiles_per_shot > 2: #Can't shoot too fast
+                firing_cooldown_multiplier = max(0.45, firing_cooldown_multiplier) #Won't drop below 0.45
 
         #Randomise Toughness
         if not self.invincible:
@@ -304,7 +304,7 @@ def create_plants():
         "Threepeater": Plant(name = "Threepeater", cost = 325, projectiles = ["Pea"], firing_cooldown = 150, projectiles_per_shot = 3, plant_id = 18),
         "Tangle Kelp": Plant(name = "Tangle Kelp", cost = 25, packet_cooldown = 3000, damage = 1800, edible = False, aquatic = True, can_wall = False, plant_id = 19),
         "Jalapeno": Plant(name = "Jalapeno", cost = 125, packet_cooldown = 5000, damage = 1800, edible = False, invincible = True, explosive = True, plant_id = 20),
-        "Spikeweed": Plant(name = "Spikeweed", edible = False, plant_id = 21),
+        "Spikeweed": Plant(name = "Spikeweed", invincible = True, edible = False, plant_id = 21),
         "Torchwood": Plant(name = "Torchwood", cost = 175, plant_id = 22),
         "Tall-nut": Plant(name = "Tall-nut", cost = 125, packet_cooldown = 3000, health = 8000, plant_id = 23),
         "Sea-shroom": Plant(name = "Sea-shroom", cost = 0, packet_cooldown = 3000, projectiles = ["Spore"], firing_cooldown = 150, nocturnal = True, aquatic = True, plant_id = 24),
@@ -329,8 +329,8 @@ def create_plants():
         "Cattail": Plant(name = "Cattail", cost = 225, packet_cooldown = 5000, projectiles = ["Spike"], firing_cooldown = 150, projectiles_per_shot = 2, upgrades_from = "Lily Pad", aquatic = True, easy_upgrade_cost = 250, plant_id = 43),
         "Winter Melon": Plant(name = "Winter Melon", cost = 200, packet_cooldown = 5000, projectiles = ["Frozen Melon"], firing_cooldown = 300, upgrades_from = "Melon-pult", bypass_roof_angle = True, easy_upgrade_cost = 500, plant_id = 44),
         "Gold Magnet": Plant(name = "Gold Magnet", cost = 50, packet_cooldown = 5000, upgrades_from = "Magnet-shroom", easy_upgrade_cost = 150, plant_id = 45),
-        "Spikerock": Plant(name = "Spikerock", cost = 125, packet_cooldown = 5000, health = 450, edible = False, upgrades_from = "Spikeweed", easy_upgrade_cost = 225, plant_id = 46),
-        "Cob Cannon": Plant(name = "Cob Cannon", cost = 500, packet_cooldown = 5000, firing_cooldown = 600, upgrades_from = "Kernel-pult", easy_upgrade_cost = 700, plant_id = 47)
+        "Spikerock": Plant(name = "Spikerock", cost = 125, packet_cooldown = 5000, invincible = True, edible = False, upgrades_from = "Spikeweed", easy_upgrade_cost = 225, plant_id = 46),
+        "Cob Cannon": Plant(name = "Cob Cannon", cost = 500, packet_cooldown = 5000, upgrades_from = "Kernel-pult", easy_upgrade_cost = 700, plant_id = 47)
     }
 
 def create_projectiles():
@@ -396,10 +396,17 @@ def randomise_plant_stats(world):
     for plant in plantable_plants:
         plantable_projectiles += world.all_plants[plant].projectiles
 
+    #Create a list of projectiles to NOT be randomised
+    projectile_blacklist = []
+    for plant_name in world.options.plant_stat_randomisation_blacklist.value:
+        if plant_name in world.all_plants:
+            projectile_blacklist += [projectile for projectile in world.all_plants[plant_name].projectiles]
+
     #Randomise projectiles
     if not world.options.maintain_vanilla_projectile_strength.value:
         for projectile in world.all_projectiles:
-            world.all_projectiles[projectile].randomise(world, projectile in usable_projectiles, projectile in plantable_projectiles)
+            if not projectile in projectile_blacklist:
+                world.all_projectiles[projectile].randomise(world, projectile in usable_projectiles, projectile in plantable_projectiles)
 
     if (not any(plant in usable_plants for plant in ["Wall-nut", "Tall-nut", "Pumpkin"])) or not any(plant in plantable_plants for plant in ["Wall-nut", "Tall-nut", "Pumpkin"]):
         guaranteed_wall = world.random.choice(["Wall-nut", "Tall-nut", "Pumpkin"])
@@ -410,7 +417,9 @@ def randomise_plant_stats(world):
     wall_plants = []
     for plant_name in world.all_plants:
         plant = world.all_plants[plant_name]
-        plant.randomise(world, plant_name in usable_plants, plant_name in plantable_plants)
+
+        if not plant_name in world.options.plant_stat_randomisation_blacklist.value:
+            plant.randomise(world, plant_name in usable_plants, plant_name in plantable_plants)
 
         if plant.is_usable(world):
             usable_plants.append(plant_name)

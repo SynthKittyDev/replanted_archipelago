@@ -64,6 +64,8 @@ class Level:
             level_banned_zombies += ["GigaGargantuar"]
         elif self.name == "Mini-games: It's Raining Seeds":
             level_banned_zombies += ["Balloon"]
+        elif self.special == "art":
+            level_banned_zombies += ["Gargantuar", "GigaGargantuar", "TallnutHead", "JalapenoHead", "Zomboni", "Bungee"]
 
         for zombie in level_banned_zombies:
             if zombie in possible_zombies:
@@ -172,7 +174,7 @@ class Level:
     def can_clear(self, state, world, player):
         #Non-negotiables
         required_items = []
-        if self.on_roof and (self.name in ["Mini-games: Pogo Party", "Mini-games: Column Like You See 'Em"] or "GigaGargantuar" in self.zombies):
+        if self.on_roof and (self.name in ["Mini-games: Pogo Party", "Mini-games: Column Like You See 'Em"] or "GigaGargantuar" in self.zombies or self.type == "Cloudy Day"):
             required_items.append("Roof Cleaners")
         if (self.name in ["Mini-games: Pogo Party", "Mini-games: Bobsled Bonanza", "Bonus Levels: Air Raid"] and "Gargantuar" in self.zombies) or (world.options.individual_tile_unlock_items.value and self.flags >= 2 and not self.ignore_locked_tiles):
             required_items.append("Shovel")
@@ -223,6 +225,8 @@ class Level:
                     required_total_columns_per_row = 7
             elif self.name in ["Mini-games: Column Like You See 'Em"] or self.type == "Survival" or self.special == "boss":
                 required_total_columns_per_row = 7
+            elif self.type == "Cloudy Day":
+                required_total_columns_per_row += 2
 
             for row_index in range(1, self.lawn_rows + 1):
                 if min(required_total_columns_per_row, 9) > tile_numbers[row_index]["total"] or min(required_rear_columns_per_row, 4) > tile_numbers[row_index]["rear"] or min(required_front_columns_per_row, 3) > tile_numbers[row_index]["front"]:
@@ -314,7 +318,7 @@ class Level:
         #AOE plants
         if self.type == "Survival" or self.name in ["Mini-games: Last Stand", "Mini-games: Column Like You See 'Em"]  or "GigaGargantuar" in self.zombies:
             possible_combinations["aoe"] = [{"Melon-pult"}]
-            if not (self.on_roof and self.conveyor == None):
+            if not (self.on_roof):
                 possible_combinations["aoe"] += [{"Repeater", "Torchwood"}, {"Threepeater", "Torchwood"}]
             if world.options.easy_upgrade_plants.value:
                 possible_combinations["aoe"].append({"Winter Melon"})
@@ -875,7 +879,7 @@ def create_levels(world = None):
             clear_location_id = 1033,
             unlock_item_name = "Fog Unlock: Level 4-4",
             level_id = 34,
-            waves = 10
+            waves = 20
         ),
 
         "4-5": Level(

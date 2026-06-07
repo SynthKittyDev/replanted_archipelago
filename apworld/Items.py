@@ -55,12 +55,19 @@ item_ids: dict[str, int] = {
 	"Fertilizer": 66,
 	"Bug Spray": 67,
 	"Chocolate": 68,
-	"Mass Zombie Freeze": 69,
+	"Instant Zombie Freeze": 69,
 	"Mower Deploy Trap": 70,
 	"Seed Packet Cooldown Trap": 71,
 	"Zombie Ambush Trap": 72,
 	"Zombie Shuffle Trap": 73,
-	"Zen Garden Sprout": 74
+	"Zen Garden Sprout": 74,
+	"RV Trap": 75,
+	"Lawn Flip Trap": 76,
+	"Lawn Randomiser Trap": 77,
+	"Zombie Caffeine Trap": 78,
+	"Instant Zombie Hypnosis": 79,
+	"Crater Trap": 80,
+	"Sun Burst": 81
 }
 
 #100-199 is reserved for plants
