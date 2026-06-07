@@ -83,6 +83,7 @@ namespace ReplantedArchipelago
         public static bool sunCapacityItems;
         public static bool individualTileUnlockItems;
         public static JObject wavesanityMap;
+        public static JObject costumeChances;
 
         public static int shopPages;
         public static int shopPagesVisible = 0;
@@ -177,7 +178,8 @@ namespace ReplantedArchipelago
                     sunCapacityItems = Convert.ToBoolean(slotData["progressive_sun_capacity_items"]);
                     individualTileUnlockItems = Convert.ToBoolean(slotData["individual_tile_unlock_items"]);
                     wavesanityMap = (JObject)slotData["wavesanity_map"];
-
+                    costumeChances = (JObject)slotData["costume_chances"];
+                    
                     plantStatRandomisationEnabled = (firingRates.Count > 0 || rechargeTimes.Count > 0 || projectileDamages.Count > 0);
 
                     energyLinkEnabled = Convert.ToBoolean(slotData["energylink_enabled"]);

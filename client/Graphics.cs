@@ -210,6 +210,9 @@ namespace ReplantedArchipelago
             { 67, "bug_spray" },
             { 68, "Chocolate" },
             { 69, "SPR_Scary_Pot_4" },
+            { 79, "SPR_Scary_Pot_4" },
+            { 81, "SPR_Scary_Pot_4" },
+            { 82, "SPR_Scary_Pot_4" },
 
             { 70, "SPR_Scary_Pot_5" },
             { 71, "SPR_Scary_Pot_5" },
@@ -217,6 +220,9 @@ namespace ReplantedArchipelago
             { 73, "SPR_Scary_Pot_5" },
             { 75, "SPR_Scary_Pot_5" },
             { 76, "SPR_Scary_Pot_5" },
+            { 77, "SPR_Scary_Pot_5" },
+            { 78, "SPR_Scary_Pot_5" },
+            { 80, "SPR_Scary_Pot_5" },
 
             { 100, "SPR_Almanac_Seedpackets_PeaShooter" },
             { 101, "SPR_Almanac_Seedpackets_Sunflower" },
@@ -308,7 +314,8 @@ namespace ReplantedArchipelago
             { "SPR_Taco", 0.35f },
             { "Key", 0.125f },
             { "SPR_WateringCan", 0.4f },
-            { "SPR_CarKeys", 0.4f }
+            { "SPR_CarKeys", 0.4f },
+            { "SPR_ShovelHiRes", 0.4f }
         };
 
         public static (Sprite sprite, float scale) GetSpriteAndScaleForItemDrop(ItemInfo itemInfo)

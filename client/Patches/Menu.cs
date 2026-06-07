@@ -217,6 +217,7 @@ namespace ReplantedArchipelago.Patches
             hostInput.name = "hostInput";
             hostInput.GetComponent<TMP_InputField>().onValueChanged = new TMP_InputField.OnChangeEvent();
             hostInput.GetComponent<TMP_InputField>().text = Main.defaultHost;
+            hostInput.GetComponent<TMP_InputField>().characterLimit = 100;
 
             GameObject slotHeader = GameObject.Instantiate(originalSubheader, center);
             slotHeader.name = "slotHeader";
@@ -226,6 +227,7 @@ namespace ReplantedArchipelago.Patches
             slotInput.name = "slotInput";
             slotInput.GetComponent<TMP_InputField>().onValueChanged = new TMP_InputField.OnChangeEvent();
             slotInput.GetComponent<TMP_InputField>().text = Main.defaultSlot;
+            slotInput.GetComponent<TMP_InputField>().characterLimit = 100;
 
             GameObject passwordHeader = GameObject.Instantiate(originalSubheader, center);
             passwordHeader.name = "passwordHeader";
@@ -235,6 +237,7 @@ namespace ReplantedArchipelago.Patches
             passwordInput.name = "passwordInput";
             passwordInput.GetComponent<TMP_InputField>().onValueChanged = new TMP_InputField.OnChangeEvent();
             passwordInput.GetComponent<TMP_InputField>().text = Main.defaultPassword;
+            passwordInput.GetComponent<TMP_InputField>().characterLimit = 100;
 
             center.Find("Buttons/P_BacicButton_OK/Label").GetComponent<TextMeshProUGUI>().text = "Connect";
             Button okButton = center.Find("Buttons/P_BacicButton_OK").GetComponent<Button>();

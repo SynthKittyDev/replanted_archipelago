@@ -6,6 +6,7 @@ using Il2CppReloaded.TreeStateActivities;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using static ReplantedArchipelago.Patches.Store;
 
 namespace ReplantedArchipelago
@@ -13,7 +14,7 @@ namespace ReplantedArchipelago
     public class Data
     {
         //Version to match with generation
-        public static string GenVersion = "1.7";
+        public static string GenVersion = "1.8";
         //Whether cheat keys are enabled
         public static bool CheatKeys = false;
         public static bool SkipAwardScreen = false;
@@ -83,7 +84,7 @@ namespace ReplantedArchipelago
             { "Imitater", 148 }
         };
 
-        public static double[] gameEffectItems = { 50, 51, 52, 53, 54, 55, 56, 64, 69, 70, 71, 72, 73, 74 };
+        public static double[] gameEffectItems = { 50, 51, 52, 53, 54, 55, 56, 64, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82 };
 
         public static Dictionary<long, string> itemIdDefaultTooltips = new Dictionary<long, string>
         {
@@ -225,7 +226,7 @@ namespace ReplantedArchipelago
             [SeedType.Threepeater] = new PlantStats { Cost = 325, Refresh = 750, Rate = 150, Health = 300, Projectiles = new List<string> { "Pea" } },
             [SeedType.Tanglekelp] = new PlantStats { Cost = 25, Refresh = 3000, Health = 300 },
             [SeedType.Jalapeno] = new PlantStats { Cost = 125, Refresh = 5000, Health = 300 },
-            [SeedType.Spikeweed] = new PlantStats { Cost = 100, Refresh = 750, Health = 300 },
+            [SeedType.Spikeweed] = new PlantStats { Cost = 100, Refresh = 750 },
             [SeedType.Torchwood] = new PlantStats { Cost = 175, Refresh = 750, Health = 300 },
             [SeedType.Tallnut] = new PlantStats { Cost = 125, Refresh = 3000, Health = 8000 },
             [SeedType.Seashroom] = new PlantStats { Cost = 0, Refresh = 3000, Rate = 150, Health = 300, Projectiles = new List<string> { "Spore" } },
@@ -250,11 +251,12 @@ namespace ReplantedArchipelago
             [SeedType.Cattail] = new PlantStats { Cost = 225, Refresh = 5000, Rate = 150, Health = 300, Projectiles = new List<string> { "Spike" }, EasyUpgradeCost = 250 },
             [SeedType.Wintermelon] = new PlantStats { Cost = 200, Refresh = 5000, Rate = 300, Health = 300, Projectiles = new List<string> { "Frozen Melon" }, EasyUpgradeCost = 500 },
             [SeedType.GoldMagnet] = new PlantStats { Cost = 50, Refresh = 5000, Health = 300, EasyUpgradeCost = 150 },
-            [SeedType.Spikerock] = new PlantStats { Cost = 125, Refresh = 5000, Health = 450, EasyUpgradeCost = 225 },
-            [SeedType.Cobcannon] = new PlantStats { Cost = 500, Refresh = 5000, Rate = 600, Health = 300, EasyUpgradeCost = 700 }
+            [SeedType.Spikerock] = new PlantStats { Cost = 125, Refresh = 5000, EasyUpgradeCost = 225 },
+            [SeedType.Cobcannon] = new PlantStats { Cost = 500, Refresh = 5000, Health = 300, EasyUpgradeCost = 700 }
         };
 
         public static SeedType[] upgradePlants = { SeedType.Gatlingpea, SeedType.Twinsunflower, SeedType.Gloomshroom, SeedType.Cattail, SeedType.Wintermelon, SeedType.GoldMagnet, SeedType.Spikerock, SeedType.Cobcannon };
+        public static SeedType[] aquaticPlants = { SeedType.Lilypad, SeedType.Tanglekelp, SeedType.Seashroom, SeedType.Cattail };
 
         //Projectiles
         public static ProjectileType[] projectileTypes = { ProjectileType.Pea, ProjectileType.Snowpea, ProjectileType.Cabbage, ProjectileType.Melon, ProjectileType.Puff, ProjectileType.Wintermelon, ProjectileType.Star, ProjectileType.Spike, ProjectileType.Kernel, ProjectileType.Butter, ProjectileType.Fireball };
@@ -287,6 +289,9 @@ namespace ReplantedArchipelago
             [ProjectileType.Butter] = 40,
             [ProjectileType.Fireball] = 40
         };
+
+        public static Dictionary<ZombieType, AssetReferenceGameObject> zombiePrefabs = new Dictionary<ZombieType, AssetReferenceGameObject>();
+        public static Dictionary<SeedType, AssetReferenceGameObject> plantPrefabs = new Dictionary<SeedType, AssetReferenceGameObject>();
 
         public static string FormatPlantStatChanges(string label, double oldValue, double newValue, bool upIsGood)
         {
@@ -696,6 +701,9 @@ namespace ReplantedArchipelago
             ["K-On! After School Live!!"] = new[] {
                 "Imported straight from Kyoto!",
                 "Undead things are fun!"
+            },
+            ["Ape Escape 2"] = new[] {
+                "I found it on a zombie monkey."
             }
         };
 
@@ -789,63 +797,92 @@ namespace ReplantedArchipelago
             }
         }
 
-        public static SeedType GetFreeSeedType(Board board)
+        public static SeedType GetFreeSeedType(Board board, bool isTrap = false, bool forceAquatic = false)
         {
-            //Any level
-            List<SeedType> freeSeedTypes = new List<SeedType> { SeedType.Cherrybomb, SeedType.Wallnut, SeedType.Potatomine, SeedType.Chomper, SeedType.Squash, SeedType.Jalapeno, SeedType.Tallnut, SeedType.Pumpkinshell, SeedType.Cabbagepult, SeedType.Kernelpult, SeedType.Garlic, SeedType.Marigold, SeedType.Melonpult };
-
-            //Sun producers - not on conveyor levels
-            if (!board.HasConveyorBeltSeedBank())
+            List<SeedType> freeSeedTypes; //List will contain all possible seeds to choose from
+            if (forceAquatic) //Used for Lawn Randomiser Trap on other aquatic plants
             {
-                freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Sunflower }).ToList();
-                if (APClient.easyUpgradePlants)
-                {
-                    freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Twinsunflower }).ToList();
-                }
+                freeSeedTypes = new List<SeedType> { SeedType.Lilypad, SeedType.Cattail, SeedType.Seashroom, SeedType.Tanglekelp };
             }
+            else
+            {
+                //Any level
+                freeSeedTypes = new List<SeedType> { SeedType.Cherrybomb, SeedType.Wallnut, SeedType.Potatomine, SeedType.Chomper, SeedType.Squash, SeedType.Jalapeno, SeedType.Tallnut, SeedType.Cabbagepult, SeedType.Kernelpult, SeedType.Garlic, SeedType.Marigold, SeedType.Melonpult };
 
-            //Upgrade plants - any level
-            if (APClient.easyUpgradePlants)
-            {
-                freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Wintermelon, SeedType.GoldMagnet, SeedType.Cobcannon }).ToList();
-            }
+                if (!isTrap) //Prevents lawn randomiser from putting pumpkins in pumpkins
+                {
+                    freeSeedTypes.Add(SeedType.Pumpkinshell);
+                }
 
-            //Nocturnal
-            if (board.mBackground == BackgroundType.Night || board.mBackground == BackgroundType.Fog)
-            {
-                freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Puffshroom, SeedType.Sunshroom, SeedType.Fumeshroom, SeedType.Hypnoshroom, SeedType.Scaredyshroom, SeedType.Iceshroom, SeedType.Doomshroom, SeedType.Magnetshroom }).ToList();
-                if (APClient.easyUpgradePlants)
+                //Sun producers - not on conveyor levels
+                if (board.HasConveyorBeltSeedBank() == false && board.mApp.GameMode != GameMode.ChallengeLastStand)
                 {
-                    freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Gloomshroom }).ToList();
+                    freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Sunflower }).ToList();
+                    if (APClient.easyUpgradePlants)
+                    {
+                        freeSeedTypes.Add(SeedType.Twinsunflower);
+                    }
+                    if (board.mBackground == BackgroundType.Night || board.mBackground == BackgroundType.Fog || isTrap)
+                    {
+                        freeSeedTypes.Add(SeedType.Sunshroom);
+                    }
                 }
-            }
 
-            //Aquatic
-            if (board.mBackground == BackgroundType.Pool || board.mBackground == BackgroundType.Fog)
-            {
-                freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Lilypad, SeedType.Tanglekelp }).ToList();
-                if (board.mBackground == BackgroundType.Fog)
+                //Upgrade plants - any level
+                if (APClient.easyUpgradePlants || isTrap)
                 {
-                    freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Seashroom, SeedType.Plantern }).ToList();
+                    freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Wintermelon, SeedType.GoldMagnet }).ToList();
+                    if (!isTrap)
+                    {
+                        freeSeedTypes.Add(SeedType.Cobcannon);
+                    }
                 }
-                if (APClient.easyUpgradePlants)
-                {
-                    freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Cattail }).ToList();
-                }
-            }
 
-            //No Roof
-            if (board.mBackground != BackgroundType.Roof)
-            {
-                freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Peashooter, SeedType.Snowpea, SeedType.Repeater, SeedType.Threepeater, SeedType.Torchwood, SeedType.Spikeweed, SeedType.Cactus, SeedType.Splitpea, SeedType.Starfruit }).ToList();
-                if (APClient.easyUpgradePlants)
+                //Nocturnal
+                if (board.mBackground == BackgroundType.Night || board.mBackground == BackgroundType.Fog || isTrap)
                 {
-                    freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Gatlingpea, SeedType.Spikerock }).ToList();
+                    freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Puffshroom, SeedType.Fumeshroom, SeedType.Hypnoshroom, SeedType.Scaredyshroom, SeedType.Iceshroom, SeedType.Doomshroom, SeedType.Magnetshroom }).ToList();
+                    if (APClient.easyUpgradePlants || isTrap)
+                    {
+                        freeSeedTypes.Add(SeedType.Gloomshroom);
+                    }
                 }
-            }
-            else //Roof
-            {
-                freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Flowerpot }).ToList();
+
+                //Aquatic
+                if ((board.mBackground == BackgroundType.Pool || board.mBackground == BackgroundType.Fog) && !isTrap)
+                {
+                    freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Lilypad, SeedType.Tanglekelp }).ToList();
+                    if (board.mBackground == BackgroundType.Fog)
+                    {
+                        freeSeedTypes.Add(SeedType.Seashroom);
+                    }
+                    if (APClient.easyUpgradePlants)
+                    {
+                        freeSeedTypes.Add(SeedType.Cattail);
+                    }
+                }
+
+                //Fog
+                if (board.mBackground == BackgroundType.Fog || isTrap)
+                {
+                    freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Plantern, SeedType.Blover }).ToList();
+                }
+
+                //No Roof
+                if (isTrap || board.mBackground != BackgroundType.Roof)
+                {
+                    freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Peashooter, SeedType.Snowpea, SeedType.Repeater, SeedType.Threepeater, SeedType.Torchwood, SeedType.Spikeweed, SeedType.Cactus, SeedType.Splitpea, SeedType.Starfruit }).ToList();
+                    if (APClient.easyUpgradePlants || isTrap)
+                    {
+                        freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Gatlingpea, SeedType.Spikerock }).ToList();
+                    }
+                }
+
+                //Yes Roof
+                if (board.mBackground == BackgroundType.Roof)
+                {
+                    freeSeedTypes.Add(SeedType.Flowerpot);
+                }
             }
 
             return freeSeedTypes[random.Next(freeSeedTypes.Count)];
