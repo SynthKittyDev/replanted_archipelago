@@ -1494,7 +1494,7 @@ namespace ReplantedArchipelago.Patches
                     List<string> possibleSkins = new List<string>();
                     if (type == ZombieType.Normal)
                     {
-                        if (APClient.costumeChances.ContainsKey("Zombie (China)") && Data.random.Next(10000) < (int)APClient.costumeChances["Zombie (China)"])
+                        if (APClient.costumeChances.ContainsKey("Zombie (China)") && Data.random.Next(10000) < (int)APClient.costumeChances["Zombie (China)"] && (!((zombie.mRow == 2 || zombie.mRow == 3) && (zombie.mBoard.mBackground == BackgroundType.Pool || zombie.mBoard.mBackground == BackgroundType.Fog))))
                         {
                             possibleSkins.Add("China");
                         }
@@ -1509,7 +1509,7 @@ namespace ReplantedArchipelago.Patches
                     }
                     else if (type == ZombieType.TrafficCone)
                     {
-                        if (APClient.costumeChances.ContainsKey("Conehead (China)") && Data.random.Next(10000) < (int)APClient.costumeChances["Conehead (China)"])
+                        if (APClient.costumeChances.ContainsKey("Conehead (China)") && Data.random.Next(10000) < (int)APClient.costumeChances["Conehead (China)"] && (!((zombie.mRow == 2 || zombie.mRow == 3) && (zombie.mBoard.mBackground == BackgroundType.Pool || zombie.mBoard.mBackground == BackgroundType.Fog))))
                         {
                             possibleSkins.Add("China");
                         }
@@ -1522,8 +1522,8 @@ namespace ReplantedArchipelago.Patches
                             possibleSkins.Add("Platform");
                         }
                     }
-                    else if ((type == ZombieType.Flag && APClient.costumeChances.ContainsKey("Flag (China)") && (Data.random.Next(10000) < (int)APClient.costumeChances["Flag (China)"])) ||
-                        (type == ZombieType.Pail && APClient.costumeChances.ContainsKey("Buckethead (China)") && (Data.random.Next(10000) < (int)APClient.costumeChances["Buckethead (China)"])) ||
+                    else if ((type == ZombieType.Flag && APClient.costumeChances.ContainsKey("Flag (China)") && (Data.random.Next(10000) < (int)APClient.costumeChances["Flag (China)"]) && (!((zombie.mRow == 2 || zombie.mRow == 3) && (zombie.mBoard.mBackground == BackgroundType.Pool || zombie.mBoard.mBackground == BackgroundType.Fog)))) ||
+                        (type == ZombieType.Pail && APClient.costumeChances.ContainsKey("Buckethead (China)") && (Data.random.Next(10000) < (int)APClient.costumeChances["Buckethead (China)"]) && (!((zombie.mRow == 2 || zombie.mRow == 3) && (zombie.mBoard.mBackground == BackgroundType.Pool || zombie.mBoard.mBackground == BackgroundType.Fog)))) ||
                         (type == ZombieType.Polevaulter && APClient.costumeChances.ContainsKey("Polevaulter (China)") && (Data.random.Next(10000) < (int)APClient.costumeChances["Polevaulter (China)"])) ||
                         (type == ZombieType.Football && APClient.costumeChances.ContainsKey("Football (China)") && (Data.random.Next(10000) < (int)APClient.costumeChances["Football (China)"])) ||
                         (type == ZombieType.Bungee && APClient.costumeChances.ContainsKey("Bungee (China)") && (Data.random.Next(10000) < (int)APClient.costumeChances["Bungee (China)"])))
@@ -1828,8 +1828,11 @@ namespace ReplantedArchipelago.Patches
                         if (Data.plantStats.ContainsKey(theSeedType))
                         {
                             Data.PlantStats theStats = Data.plantStats[theSeedType];
-                            __instance.mPlantMaxHealth = theStats.Health;
-                            __instance.mPlantHealth = theStats.Health;
+                            if (theStats.Health > 0)
+                            {
+                                __instance.mPlantMaxHealth = theStats.Health;
+                                __instance.mPlantHealth = theStats.Health;
+                            }
                         }
                     }
                 }
