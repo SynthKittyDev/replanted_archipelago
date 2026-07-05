@@ -286,7 +286,7 @@ class Level:
         elif self.special == "vasebreaker" and world.options.lock_vasebreaker_plants.value:
             total_vases = sum(self.vasebreaker_plants.values())
             empty_vases = sum([self.vasebreaker_plants[plant] for plant in self.vasebreaker_plants if not state.has(plant, player)])
-            if (empty_vases/total_vases) > 0.1: #Level is OOL if more than 10% of vases are empty
+            if (empty_vases/total_vases) > 0.05: #Level is OOL if more than 5% of vases are empty
                 return False 
 
         #I, Zombie locks
