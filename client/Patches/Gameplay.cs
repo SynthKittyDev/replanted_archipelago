@@ -11,11 +11,15 @@ using Il2CppReloaded.TreeStateActivities;
 using Il2CppSource.Controllers;
 using Il2CppSource.Utils;
 using Il2CppTMPro;
+using MelonLoader;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Collections;
 using UnityEngine;
+using static ReplantedArchipelago.Data;
 
 namespace ReplantedArchipelago.Patches
 {
@@ -33,6 +37,11 @@ namespace ReplantedArchipelago.Patches
         public static bool forceChina = false;
         public static bool forceRetro = false;
         public static bool forcePlatform = false;
+        public static List<SeedLink> queuedSeedLinks = new List<SeedLink>();
+        public static List<LawnLink> queuedLawnLinks = new List<LawnLink>();
+        public static DateTime resetLinkMessageAt;
+        public static bool linkMessageActive = false;
+        public static bool lawnLinkBlocked = false;
 
         [HarmonyPatch(typeof(GameplayActivity), nameof(GameplayActivity.ActiveUpdate))] //Runs every frame during gameplay
         public class GameplayActivityUpdatePatch
@@ -131,16 +140,10 @@ namespace ReplantedArchipelago.Patches
                         board.AddSunMoney(500, 0);
                     }
 
-                    //Chooser refresh - F3
+                    //Display LinkMessage - F3
                     if (Input.GetKeyDown(KeyCode.F3))
                     {
-                        APClient.chooserRefreshState = "update";
-                    }
-
-                    //Exit level - F4
-                    if (Input.GetKeyDown(KeyCode.F4))
-                    {
-                        StateTransitionUtils.Transition("Frontend");
+                        DisplayLinkMessage("Displaying Link Message", new UnityEngine.Color(1f, 1f, 1f), __instance);
                     }
 
                     //Refresh all packets - F5
@@ -354,6 +357,143 @@ namespace ReplantedArchipelago.Patches
                     }
                 }
 
+                //Seed Link
+                if (APClient.seedLinkEnabled && queuedSeedLinks.Count > 0)
+                {
+                    if (APClient.seedLinkEnabled && __instance.GameScene == GameScenes.Playing)
+                    {
+                        if (!__instance.m_board.HasConveyorBeltSeedBank() && !__instance.IsSlotMachineLevel() && !(__instance.GameMode == GameMode.ChallengeLastStand && __instance.m_board.mChallenge.mChallengeState != ChallengeState.LastStandOnslaught))
+                        {
+                            foreach (SeedLink queuedSeedLink in queuedSeedLinks)
+                            {
+                                SeedType theSeedType = queuedSeedLink.Seed;
+                                foreach (SeedPacket seedPacket in board.SeedBanks[0].SeedPackets)
+                                {
+                                    if (seedPacket != null && seedPacket.PacketType == theSeedType)
+                                    {
+                                        seedPacket.mRefreshCounter = 0;
+                                        seedPacket.mRefreshTime = Plant.GetRefreshTime(__instance, seedPacket.mPacketType, seedPacket.mImitaterType);
+                                        seedPacket.mRefreshing = true;
+                                        seedPacket.mActive = false;
+                                        DisplayLinkMessage($"{APClient.apSession.Players.GetPlayerName(queuedSeedLink.Source)} used {Plant.GetNameString(__instance, seedPacket.mPacketType, seedPacket.mImitaterType)}", new UnityEngine.Color(1f, 1f, 1f), __instance);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    queuedSeedLinks.Clear();
+                }
+
+                //Lawn Link
+                if (APClient.lawnLinkEnabled && queuedLawnLinks.Count > 0)
+                {
+                    lawnLinkBlocked = true; //Don't send new lawn links from these actions
+                    if (__instance.GameScene == GameScenes.Playing && !__instance.IsWallnutBowlingLevel() && !(__instance.GameMode == GameMode.ChallengeLastStand && __instance.m_board.mChallenge.mChallengeState != ChallengeState.LastStandOnslaught) && __instance.GameScene == GameScenes.Playing && (__instance.m_board.ChooseSeedsOnCurrentLevel() || __instance.m_board.HasConveyorBeltSeedBank()))
+                    {
+                        foreach (LawnLink queuedLawnLink in queuedLawnLinks)
+                        {
+                            if (queuedLawnLink.Conveyor == __instance.m_board.HasConveyorBeltSeedBank())
+                            {
+                                if (queuedLawnLink.Action == 0) //Planting
+                                {
+                                    if (__instance.m_board.CanPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed) == PlantingReason.Ok)
+                                    {
+                                        if (APClient.lawnLinkChances.ContainsKey("add_plant") && Data.random.Next(100) < (int)APClient.lawnLinkChances["add_plant"])
+                                        {
+                                            __instance.m_board.AddPlant(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed, queuedLawnLink.Seed);
+                                            DisplayLinkMessage($"{Plant.GetNameString(__instance, queuedLawnLink.Seed, queuedLawnLink.Seed)} planted by {APClient.apSession.Players.GetPlayerName(queuedLawnLink.Source)}", new UnityEngine.Color(1f, 1f, 0.3f), __instance);
+                                        }
+                                    }
+                                    else if (__instance.m_board.GetTopPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, PlantPriority.DiggingOrder) != null && __instance.m_board.CanPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed) == PlantingReason.NotHere) //Can't plant because there's already something there
+                                    {
+                                        if (APClient.lawnLinkChances.ContainsKey("overwrite_plant") && Data.random.Next(100) < (int)APClient.lawnLinkChances["overwrite_plant"] && queuedLawnLink.Seed != SeedType.Gravebuster && queuedLawnLink.Seed != SeedType.InstantCoffee && (!(APClient.easyUpgradePlants == false && Data.upgradePlants.Contains(queuedLawnLink.Seed))))
+                                        {
+                                            if (queuedLawnLink.Seed == SeedType.Pumpkinshell)
+                                            {
+                                            }
+                                            if ((queuedLawnLink.Row == 2 || queuedLawnLink.Row == 3) && (__instance.m_board.mBackground == BackgroundType.Pool || __instance.m_board.mBackground == BackgroundType.Fog)) //Water lanes
+                                            {
+                                                if (Data.aquaticPlants.Contains(queuedLawnLink.Seed)) //This is an aquatic plant, so it must be an empty tile in order to use it
+                                                {
+                                                    SeedType overwrittenPlant = SeedType.None;
+                                                    while (true) //Loop until broken
+                                                    {
+                                                        Plant topPlant = __instance.m_board.GetTopPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, PlantPriority.DiggingOrder); //Get top plant
+                                                        if (topPlant == null) //If there is no plant there anymore, break the loop
+                                                        {
+                                                            break;
+                                                        }
+                                                        else //If there is still a plant there, we need to get rid of it
+                                                        {
+                                                            overwrittenPlant = topPlant.mSeedType;
+                                                            topPlant.Die();
+                                                        }
+                                                    }
+                                                    if (__instance.m_board.CanPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed) == PlantingReason.Ok)
+                                                    {
+                                                        __instance.m_board.AddPlant(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed, queuedLawnLink.Seed); //Add your plant
+                                                    }
+                                                    DisplayLinkMessage($"{APClient.apSession.Players.GetPlayerName(queuedLawnLink.Source)} replaced your {Plant.GetNameString(__instance, overwrittenPlant, overwrittenPlant)} with {Plant.GetNameString(__instance, queuedLawnLink.Seed, queuedLawnLink.Seed)}", new UnityEngine.Color(1f, 0.5f, 0.5f), __instance);
+                                                }
+                                                else //We can't plant there, we've got a non-aquatic plant - so there must be either an aquatic plant already there, or there's just a plant on a Lily Pad
+                                                {
+                                                    Plant topPlant = __instance.m_board.GetTopPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, PlantPriority.DiggingOrder); //Get top plant
+                                                    if (!Data.aquaticPlants.Contains(topPlant.mSeedType)) //If it's an aquatic plant, just give up as you'd have to spawn in a Lily Pad as well which is cheating >:(
+                                                    {
+                                                        SeedType overwrittenPlant = topPlant.mSeedType;
+                                                        topPlant.Die(); //Remove plant on the flower pot
+                                                        if (__instance.m_board.CanPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed) == PlantingReason.Ok)
+                                                        {
+                                                            __instance.m_board.AddPlant(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed, queuedLawnLink.Seed); //Add your plant
+                                                        }
+                                                        DisplayLinkMessage($"{APClient.apSession.Players.GetPlayerName(queuedLawnLink.Source)} replaced your {Plant.GetNameString(__instance, overwrittenPlant, overwrittenPlant)} with {Plant.GetNameString(__instance, queuedLawnLink.Seed, queuedLawnLink.Seed)}", new UnityEngine.Color(1f, 0.5f, 0.5f), __instance);
+                                                    }
+                                                }
+                                            }
+                                            else if (!Data.aquaticPlants.Contains(queuedLawnLink.Seed) && !(queuedLawnLink.Seed == SeedType.Flowerpot && __instance.m_board.GetFlowerPotAt(queuedLawnLink.Column, queuedLawnLink.Row) != null)) //Planting a non-aquatic plant
+                                            {
+                                                SeedType overwrittenPlant = SeedType.None;
+                                                while (true) //Loop until broken
+                                                {
+                                                    Plant topPlant = __instance.m_board.GetTopPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, PlantPriority.DiggingOrder); //Get top plant
+                                                    if (topPlant == null) //If there is no plant there anymore, break the loop
+                                                    {
+                                                        break;
+                                                    }
+                                                    else //If there is still a plant there, we need to get rid of it
+                                                    {
+                                                        overwrittenPlant = topPlant.mSeedType;
+                                                        topPlant.Die();
+                                                    }
+                                                }
+                                                __instance.m_board.AddPlant(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed, queuedLawnLink.Seed); //Add your plant
+                                                DisplayLinkMessage($"{APClient.apSession.Players.GetPlayerName(queuedLawnLink.Source)} replaced your {Plant.GetNameString(__instance, overwrittenPlant, overwrittenPlant)} with {Plant.GetNameString(__instance, queuedLawnLink.Seed, queuedLawnLink.Seed)}", new UnityEngine.Color(1f, 0.5f, 0.5f), __instance);
+                                            }
+                                        }
+                                    }
+                                }
+                                else if (queuedLawnLink.Action == 1 && APClient.lawnLinkChances.ContainsKey("remove_plant") && Data.random.Next(100) < (int)APClient.lawnLinkChances["remove_plant"]) //Digging
+                                {
+                                    Plant plant = __instance.m_board.GetTopPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, PlantPriority.EatingOrder);
+                                    if (plant != null)
+                                    {
+                                        plant.Die();
+                                        DisplayLinkMessage($"{APClient.apSession.Players.GetPlayerName(queuedLawnLink.Source)} removed your {Plant.GetNameString(__instance, plant.mSeedType, plant.mImitaterType)}", new UnityEngine.Color(1f, 0.5f, 0.5f), __instance);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    queuedLawnLinks.Clear();
+                    lawnLinkBlocked = false;
+                }
+
+                if (linkMessageActive && (DateTime.Now > resetLinkMessageAt))
+                {
+                    GameObject.Find("LinkMessage/Canvas/Layout/Center/Message/MessageText").GetComponent<TextMeshProUGUI>().text = "";
+                    linkMessageActive = false;
+                }
+
                 //Sun Capacity
                 if (APClient.sunCapacityItems)
                 {
@@ -448,6 +588,10 @@ namespace ReplantedArchipelago.Patches
                                         seedPacket.mRefreshTime = Plant.GetRefreshTime(__instance, seedPacket.mPacketType, seedPacket.mImitaterType);
                                         seedPacket.mRefreshing = true;
                                         seedPacket.mActive = false;
+                                        if (APClient.seedLinkEnabled)
+                                        {
+                                            APClient.SendSeedLinkPacket(seedPacket.mPacketType);
+                                        }
                                     }
                                 }
                             }
@@ -636,6 +780,17 @@ namespace ReplantedArchipelago.Patches
                 if (board.ShowShovel == true && APClient.HasShovel() == false)
                 {
                     board.ShowShovel = false;
+                }
+
+                if (APClient.lockIZombieZombies && __instance.IsIZombieLevel())
+                {
+                    for (int i = board.SeedBanks[0].mSeedPackets.Count - 1; i >= 0; i--)
+                    {
+                        if (!APClient.HasSeedType(board.SeedBanks[0].mSeedPackets[i].mPacketType))
+                        {
+                            board.SeedBanks[0].mSeedPackets[i].mActive = false;
+                        }
+                    }
                 }
             }
         }
@@ -1050,6 +1205,13 @@ namespace ReplantedArchipelago.Patches
                     }
                 }
 
+                //Create text element for Lawn Link / Seed Link
+                GameObject messageTemplate = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(o => o.name == "P_MessageWidget");
+                GameObject messageWidget = GameObject.Instantiate(messageTemplate, messageTemplate.transform.parent);
+                messageWidget.name = "LinkMessage";
+                messageWidget.SetActive(true);
+                MelonCoroutines.Start(InitLinkMessageObject());
+
                 Graphics.LoadCustomGraphics();
             }
         }
@@ -1344,7 +1506,12 @@ namespace ReplantedArchipelago.Patches
         {
             private static bool Prefix(Board __instance, SeedType theSeedType, ref bool __result)
             {
-                if (APClient.easyUpgradePlants)
+                if (APClient.lockIZombieZombies && __instance.mApp.IsIZombieLevel() && !APClient.HasSeedType(theSeedType) && !Data.seedTypes.Contains(theSeedType))
+                {
+                    __result = false;
+                    return false;
+                }
+                else if (APClient.easyUpgradePlants)
                 {
                     __result = true;
                     return false;
@@ -1699,6 +1866,7 @@ namespace ReplantedArchipelago.Patches
         {
             private static void Postfix(Board __instance)
             {
+                int currentLevelId = Data.GetLevelIdFromGameplayActivity(__instance.mApp);
                 if (__instance.ChooseSeedsOnCurrentLevel())
                 {
                     APClient.preferredSeeds = new System.Collections.Generic.List<SeedType>();
@@ -1710,7 +1878,19 @@ namespace ReplantedArchipelago.Patches
                         }
                     }
                 }
-                int currentLevelId = Data.GetLevelIdFromGameplayActivity(__instance.mApp);
+                else if (APClient.lockConveyorPlants && __instance.HasConveyorBeltSeedBank())
+                {
+                    for (int i = __instance.SeedBanks[0].mSeedPackets.Count - 1; i >= 0; i--)
+                    {
+                        SeedType theSeedType = __instance.SeedBanks[0].mSeedPackets[i].mPacketType;
+                        if (theSeedType != SeedType.None && !APClient.HasSeedType(theSeedType))
+                        {
+                            __instance.SeedBanks[0].RemoveSeed(i);
+                            DisplayLinkMessage($"Locked Conveyor Plant: {Plant.GetNameString(__instance.mApp, theSeedType, theSeedType)}", new UnityEngine.Color(1f, 1f, 1f), __instance.mApp);
+                        }
+                    }
+                }
+
                 if ((currentLevelId == 63 || currentLevelId == 69 || currentLevelId == 104) && APClient.zombieMap.ContainsKey(currentLevelId.ToString()))
                 {
                     if (APClient.zombieMap[currentLevelId.ToString()].Any(includedZombie => includedZombie.Value<int>() == 23)) //Gargantuar
@@ -1796,6 +1976,10 @@ namespace ReplantedArchipelago.Patches
                             {
                                 __result.m_damage = (int)APClient.projectileDamages[projectileIndex];
                             }
+                            else if (theProjectileType == ProjectileType.PeashooterPea && APClient.projectileDamages.ContainsKey("0"))
+                            {
+                                __result.m_damage = (int)APClient.projectileDamages["0"];
+                            }
                             else if ((theProjectileType == ProjectileType.Fireball || theProjectileType == ProjectileType.PeashooterFireball) && APClient.projectileDamages.ContainsKey("0"))
                             {
                                 __result.m_damage = ((int)APClient.projectileDamages["0"]) * 2;
@@ -1805,10 +1989,6 @@ namespace ReplantedArchipelago.Patches
                         {
                             __result.m_damage = Data.defaultProjectileDamages[theProjectileType];
                         }
-                    }
-                    else if (theProjectileType == ProjectileType.PeashooterPea && APClient.projectileDamages.ContainsKey("0"))
-                    {
-                        __result.m_damage = (int)APClient.projectileDamages["0"];
                     }
                 }
             }
@@ -1845,7 +2025,7 @@ namespace ReplantedArchipelago.Patches
             private static bool Prefix(Challenge __instance)
             {
                 int levelId = Data.GetLevelIdFromGameplayActivity(__instance.mApp);
-                if (__instance.mConveyorBeltCounter > 1 || !APClient.conveyorMap.ContainsKey(levelId.ToString()))
+                if (__instance.mConveyorBeltCounter > 1 || !(APClient.conveyorMap.ContainsKey(levelId.ToString()) || APClient.lockConveyorPlants))
                 {
                     return true;
                 }
@@ -1873,17 +2053,32 @@ namespace ReplantedArchipelago.Patches
                     float conveyorBeltCounter = conveyorSpeedMultiplier * (numSeedsOnConveyor > 8 ? 1000 : numSeedsOnConveyor > 6 ? 500 : numSeedsOnConveyor > 4 ? 425 : 400);
                     __instance.mConveyorBeltCounter = (int)conveyorBeltCounter;
 
-                    JObject conveyorMap = (JObject)APClient.conveyorMap[levelId.ToString()]["weights"];
-                    TodWeightedArray[] customSeeds = new TodWeightedArray[conveyorMap.Count];
-
-                    int index = 0;
-                    foreach (var conveyorMapSeed in conveyorMap)
+                    TodWeightedArray[] customSeeds;
+                    if (APClient.conveyorMap.ContainsKey(levelId.ToString()))
                     {
-                        int seedIndex = conveyorMapSeed.Key.ToInt32();
-                        int seedWeight = (int)conveyorMapSeed.Value;
-                        customSeeds[index].Item = (int)Data.seedTypes[seedIndex];
-                        customSeeds[index].Weight = seedWeight;
-                        index++;
+                        JObject conveyorMap = (JObject)APClient.conveyorMap[levelId.ToString()]["weights"];
+                        customSeeds = new TodWeightedArray[conveyorMap.Count];
+                        int index = 0;
+                        foreach (var conveyorMapSeed in conveyorMap)
+                        {
+                            int seedIndex = conveyorMapSeed.Key.ToInt32();
+                            int seedWeight = (int)conveyorMapSeed.Value;
+                            customSeeds[index].Item = (int)Data.seedTypes[seedIndex];
+                            customSeeds[index].Weight = seedWeight;
+                            index++;
+                        }
+                    }
+                    else
+                    {
+                        Dictionary<SeedType, int> conveyorMap = Data.defaultConveyorMaps[levelId];
+                        customSeeds = new TodWeightedArray[conveyorMap.Count];
+                        int index = 0;
+                        foreach (KeyValuePair<SeedType, int> conveyorEntry in conveyorMap)
+                        {
+                            customSeeds[index].Item = (int)conveyorEntry.Key;
+                            customSeeds[index].Weight = conveyorEntry.Value;
+                            index++;
+                        }
                     }
 
                     for (int i = 0; i < customSeeds.Length; i++)
@@ -1952,8 +2147,15 @@ namespace ReplantedArchipelago.Patches
                     }
 
                     SeedType theSeedType = (SeedType)Common.TodPickFromWeightedArray(customSeeds, customSeeds.Length);
-                    __instance.mBoard.SeedBanks[0].AddSeed(theSeedType, false);
                     __instance.mLastConveyorSeedType = theSeedType;
+                    if (!(APClient.lockConveyorPlants && !APClient.HasSeedType(theSeedType)))
+                    {
+                        __instance.mBoard.SeedBanks[0].AddSeed(theSeedType, false);
+                    }
+                    else
+                    {
+                        DisplayLinkMessage($"Locked Conveyor Plant: {Plant.GetNameString(__instance.mApp, theSeedType, theSeedType)}", new UnityEngine.Color(1f, 1f, 1f), __instance.mApp);
+                    }
                 }
                 return false;
             }
@@ -2000,6 +2202,46 @@ namespace ReplantedArchipelago.Patches
                 {
                     displayingSeedStatsIndex = -1;
                 }
+                if (APClient.lawnLinkEnabled && !lawnLinkBlocked && !__instance.mApp.IsWallnutBowlingLevel() && !(__instance.mApp.GameMode == GameMode.ChallengeLastStand && __instance.mChallenge.mChallengeState != ChallengeState.LastStandOnslaught) && __instance.mApp.GameScene == GameScenes.Playing && (__instance.ChooseSeedsOnCurrentLevel() || __instance.HasConveyorBeltSeedBank()))
+                {
+                    LawnLink lawnLink = new LawnLink();
+                    lawnLink.Action = 0;
+                    lawnLink.Row = __result.mRow;
+                    lawnLink.Column = __result.mPlantCol;
+                    lawnLink.Seed = __result.mSeedType;
+                    lawnLink.Conveyor = (__instance.HasConveyorBeltSeedBank());
+                    APClient.SendLawnLinkPacket(lawnLink);
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Plant), nameof(Plant.Die))]
+        public static class PlantDiePatch
+        {
+            private static void Prefix(Plant __instance)
+            {
+                if (!Data.suicidalPlants.Contains(__instance.mSeedType) && APClient.lawnLinkEnabled && !lawnLinkBlocked && !__instance.mApp.IsWallnutBowlingLevel() && __instance.mApp.GameScene == GameScenes.Playing && (__instance.mBoard.ChooseSeedsOnCurrentLevel() || __instance.mBoard.HasConveyorBeltSeedBank()))
+                {
+                    LawnLink lawnLink = new LawnLink();
+                    lawnLink.Action = 1;
+                    lawnLink.Row = __instance.mRow;
+                    lawnLink.Column = __instance.mPlantCol;
+                    lawnLink.Seed = __instance.mSeedType;
+                    lawnLink.Conveyor = (__instance.mBoard.HasConveyorBeltSeedBank());
+                    APClient.SendLawnLinkPacket(lawnLink);
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(SeedPacket), nameof(SeedPacket.WasPlanted))]
+        public static class WasPlantedPatch
+        {
+            private static void Postfix(SeedPacket __instance)
+            {
+                if (APClient.seedLinkEnabled && __instance.mApp.GameScene == GameScenes.Playing && !__instance.mBoard.HasConveyorBeltSeedBank() && !__instance.mApp.IsSlotMachineLevel() && !(__instance.mApp.GameMode == GameMode.ChallengeLastStand && __instance.mBoard.mChallenge.mChallengeState != ChallengeState.LastStandOnslaught))
+                {
+                    APClient.SendSeedLinkPacket(__instance.mPacketType);
+                }
             }
         }
 
@@ -2028,6 +2270,99 @@ namespace ReplantedArchipelago.Patches
                     }
                 }
                 return false;
+            }
+        }
+
+        [HarmonyPatch(typeof(Challenge), nameof(Challenge.ScaryPotterOpenPot))] //Checks if the level is over - if it is, decides what happens next
+        public class ScaryPotterOpenPotPatch
+        {
+            private static bool Prefix(Challenge __instance, ref GridItem theScaryPot)
+            {
+                if (APClient.lockVasebreakerPlants && theScaryPot.mSeedType != SeedType.None && !APClient.HasSeedType(theScaryPot.mSeedType))
+                {
+                    theScaryPot.GridItemDie();
+
+                    //Visual and sound
+                    __instance.mApp.m_audioService.PlayFoley(FoleyType.VaseBreaking);
+                    int particleX = __instance.mBoard.GridToPixelX(theScaryPot.mGridX, theScaryPot.mGridY) + 20;
+                    int particleY = __instance.mBoard.GridToPixelY(theScaryPot.mGridX, theScaryPot.mGridY);
+                    __instance.mApp.AddTodParticle(particleX, particleY, (int)RenderLayer.Particle, ParticleEffect.VaseShatter);
+
+                    //Level clear
+                    if (__instance.ScaryPotterIsCompleted())
+                    {
+                        if (__instance.mApp.IsScaryPotterLevel() && !__instance.mBoard.IsFinalScaryPotterStage())
+                        {
+                            int mGridY4 = theScaryPot.mGridY;
+                            int mGridX3 = theScaryPot.mGridX;
+                            __instance.PuzzlePhaseComplete(mGridX3, mGridY4);
+                        }
+                        int mGridY5 = theScaryPot.mGridY;
+                        int mGridX4 = theScaryPot.mGridX;
+                        __instance.SpawnLevelAward(mGridX4, mGridY5);
+                    }
+
+                    if (theScaryPot.mSeedType == SeedType.Leftpeater)
+                    {
+                        DisplayLinkMessage($"Locked Vasebreaker Plant: Backwards Repeater", new UnityEngine.Color(1f, 1f, 1f), __instance.mApp);
+                    }
+                    else
+                    {
+                        DisplayLinkMessage($"Locked Vasebreaker Plant: {Plant.GetNameString(__instance.mApp, theScaryPot.mSeedType, theScaryPot.mSeedType)}", new UnityEngine.Color(1f, 1f, 1f), __instance.mApp);
+                    }
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        public static void DisplayLinkMessage(string message, UnityEngine.Color color, GameplayActivity gameplayActivity)
+        {
+            Transform messageText = GameObject.Find("LinkMessage/Canvas/Layout/Center/Message/MessageText").transform;
+
+            if (gameplayActivity.m_board.HasConveyorBeltSeedBank())
+            {
+                messageText.position = new Vector3(2480, -394, -248);
+            }
+            else
+            {
+                messageText.position = new Vector3(2165, -394, -248);
+            }
+
+            TextMeshProUGUI textMeshProUGUI = messageText.GetComponent<TextMeshProUGUI>();
+            textMeshProUGUI.text = message;
+            textMeshProUGUI.color = color;
+
+            linkMessageActive = true;
+            resetLinkMessageAt = DateTime.Now.AddSeconds(4);
+        }
+
+        public static IEnumerator InitLinkMessageObject()
+        {
+            yield return null; // wait 1 frame
+            UnityEngine.Object.Destroy(GameObject.Find("LinkMessage").GetComponentInChildren<Il2CppTekly.DataModels.Binders.BinderContainer>());
+            UnityEngine.Object.Destroy(GameObject.Find("LinkMessage").GetComponentInChildren<Il2CppSource.UI.TMProUGUIColorFlasher>());
+            UnityEngine.Object.Destroy(GameObject.Find("LinkMessage/Canvas/Layout/Center/Message/Background"));
+
+            Transform messageText = GameObject.Find("LinkMessage/Canvas/Layout/Center/Message/MessageText").transform;
+            TextMeshProUGUI textMeshProUGUI = GameObject.Find("LinkMessage/Canvas/Layout/Center/Message/MessageText").GetComponent<TextMeshProUGUI>();
+            textMeshProUGUI.alignment = TextAlignmentOptions.Left;
+            textMeshProUGUI.fontSizeMax = 70;
+            textMeshProUGUI.text = "";
+
+        }
+
+
+        [HarmonyPatch(typeof(Challenge), nameof(Challenge.IZombieMouseDownWithZombie))] //Checks if the level is over - if it is, decides what happens next
+        public class IZombieMouseDownWithZombiePatch
+        {
+            private static bool Prefix(Challenge __instance, ref int playerIndex)
+            {
+                if (APClient.lockIZombieZombies && !APClient.HasSeedType(__instance.mBoard.CursorObjects[playerIndex].mType))
+                {
+                    return false;
+                }
+                return true;
             }
         }
     }

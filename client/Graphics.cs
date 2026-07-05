@@ -212,7 +212,6 @@ namespace ReplantedArchipelago
             { 69, "SPR_Scary_Pot_4" },
             { 79, "SPR_Scary_Pot_4" },
             { 81, "SPR_Scary_Pot_4" },
-            { 82, "SPR_Scary_Pot_4" },
 
             { 70, "SPR_Scary_Pot_5" },
             { 71, "SPR_Scary_Pot_5" },
@@ -223,6 +222,10 @@ namespace ReplantedArchipelago
             { 77, "SPR_Scary_Pot_5" },
             { 78, "SPR_Scary_Pot_5" },
             { 80, "SPR_Scary_Pot_5" },
+
+            { 82, "SPR_Almanac_Seedpackets_Explode-o-nut" },
+            { 83, "SPR_Almanac_Seedpackets_GiantWallnut" },
+            { 84, "SPR_Almanac_Seedpackets_Leftpeater" },
 
             { 100, "SPR_Almanac_Seedpackets_PeaShooter" },
             { 101, "SPR_Almanac_Seedpackets_Sunflower" },
@@ -315,7 +318,10 @@ namespace ReplantedArchipelago
             { "Key", 0.125f },
             { "SPR_WateringCan", 0.4f },
             { "SPR_CarKeys", 0.4f },
-            { "SPR_ShovelHiRes", 0.4f }
+            { "SPR_ShovelHiRes", 0.4f },
+            { "SPR_Almanac_Seedpackets_Explode-o-nut", 0.5f },
+            { "SPR_Almanac_Seedpackets_GiantWallnut", 0.5f },
+            { "SPR_Almanac_Seedpackets_Leftpeater", 0.5f }
         };
 
         public static (Sprite sprite, float scale) GetSpriteAndScaleForItemDrop(ItemInfo itemInfo)

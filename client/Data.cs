@@ -14,7 +14,7 @@ namespace ReplantedArchipelago
     public class Data
     {
         //Version to match with generation
-        public static string GenVersion = "1.8";
+        public static string GenVersion = "1.9";
         //Whether cheat keys are enabled
         public static bool CheatKeys = false;
         public static bool SkipAwardScreen = false;
@@ -30,6 +30,7 @@ namespace ReplantedArchipelago
         public static GameObject inputTemplate;
         public static GameObject subheaderTemplate;
         public static GameObject headerTemplate;
+        public static GameObject messageTemplate;
 
         //Classes
         public class LevelLocationsEntry
@@ -129,11 +130,35 @@ namespace ReplantedArchipelago
             { 66, "Used to grow Zen Garden plants" },
             { 67, "Used to keep Zen Garden plants happy" },
             { 68, "Fed to Stinky or your Zen Garden plants" },
+            { 69, "Freezes all zombies" },
             { 70, "Instantly deploys your lawn mowers" },
             { 71, "Puts all seeds on cooldown" },
             { 72, "Summons an ambush of zombies" },
             { 73, "Causes zombies to change lanes" },
-            { 69, "Freezes all zombies" },
+            { 74, "A plant for your Zen Garden" },
+            { 75, "Sends an RV onto your lawn" },
+            { 76, "Flips the positions of your plants" },
+            { 77, "Randomises the plants on your lawn" },
+            { 78, "Gives zombies a speed boost" },
+            { 79, "Hypnotises all zombies" },
+            { 80, "Makes craters appear on your lawn" },
+            { 81, "Summons a burst of sun" },
+            { 82, "A special Wall-nut to bowl with" },
+            { 83, "A special Wall-nut to bowl with" },
+            { 84, "A special Repeater for Vasebreaker" },
+            { 85, "A zombie to use in I, Zombie" },
+            { 86, "A zombie to use in I, Zombie" },
+            { 87, "A zombie to use in I, Zombie" },
+            { 88, "A zombie to use in I, Zombie" },
+            { 89, "A zombie to use in I, Zombie" },
+            { 90, "A zombie to use in I, Zombie" },
+            { 91, "A zombie to use in I, Zombie" },
+            { 92, "A zombie to use in I, Zombie" },
+            { 93, "A zombie to use in I, Zombie" },
+            { 94, "A zombie to use in I, Zombie" },
+            { 95, "A zombie to use in I, Zombie" },
+            { 96, "A zombie to use in I, Zombie" },
+            { 97, "A zombie to use in I, Zombie" }
         };
 
         public static Dictionary<long, CoinType> awardCoinTypes = new Dictionary<long, CoinType>
@@ -172,6 +197,27 @@ namespace ReplantedArchipelago
         public static Dictionary<string, int[]> levelOrders = new Dictionary<string, int[]>();
         public static Dictionary<string, LevelEntryData[]> orderedLevelEntries = new Dictionary<string, LevelEntryData[]>();
         public static string[] plantNames = { "Peashooter", "Sunflower", "Cherry Bomb", "Wall-nut", "Potato Mine", "Snow Pea", "Chomper", "Repeater", "Puff-shroom", "Sun-shroom", "Fume-shroom", "Grave Buster", "Hypno-shroom", "Scaredy-shroom", "Ice-shroom", "Doom-shroom", "Lily Pad", "Squash", "Threepeater", "Tangle Kelp", "Jalapeno", "Spikeweed", "Torchwood", "Tall-nut", "Sea-shroom", "Plantern", "Cactus", "Blover", "Split Pea", "Starfruit", "Pumpkin", "Magnet-shroom", "Cabbage-pult", "Flower Pot", "Kernel-pult", "Coffee Bean", "Garlic", "Umbrella Leaf", "Marigold", "Melon-pult", "Gatling Pea", "Twin Sunflower", "Gloom-shroom", "Cattail", "Winter Melon", "Gold Magnet", "Spikerock", "Cob Cannon", "Imitater" };
+        public static SeedType[] suicidalPlants = { SeedType.Cherrybomb, SeedType.Gravebuster, SeedType.Iceshroom, SeedType.Doomshroom, SeedType.Jalapeno, SeedType.Blover, SeedType.InstantCoffee }; //These don't send plant deaths with LawnLink
+
+        public static Dictionary<SeedType, int> unusualSeedTypes = new Dictionary<SeedType, int>
+        {
+            { SeedType.ExplodeONut, 82 },
+            { SeedType.GiantWallnut, 83 },
+            { SeedType.Leftpeater, 84 },
+            { SeedType.ZombieNormal, 85 },
+            { SeedType.ZombieTrafficCone, 86 },
+            { SeedType.ZombiePail, 87 },
+            { SeedType.ZombieFootball, 88 },
+            { SeedType.ZombieScreenDoor, 89 },
+            { SeedType.ZombieDigger, 90 },
+            { SeedType.ZombieLadder, 91 },
+            { SeedType.ZombieBungee, 92 },
+            { SeedType.ZombieBalloon, 93 },
+            { SeedType.ZombiePolevaulter, 94 },
+            { SeedType.ZombieImp, 95 },
+            { SeedType.ZombieGargantuar, 96 },
+            { SeedType.ZombieDancer, 97 }
+        };
 
         //Plant stats
         public class PlantStats
@@ -259,7 +305,7 @@ namespace ReplantedArchipelago
         public static SeedType[] aquaticPlants = { SeedType.Lilypad, SeedType.Tanglekelp, SeedType.Seashroom, SeedType.Cattail };
 
         //Projectiles
-        public static ProjectileType[] projectileTypes = { ProjectileType.Pea, ProjectileType.Snowpea, ProjectileType.Cabbage, ProjectileType.Melon, ProjectileType.Puff, ProjectileType.Wintermelon, ProjectileType.Star, ProjectileType.Spike, ProjectileType.Kernel, ProjectileType.Butter, ProjectileType.Fireball };
+        public static ProjectileType[] projectileTypes = { ProjectileType.Pea, ProjectileType.Snowpea, ProjectileType.Cabbage, ProjectileType.Melon, ProjectileType.Puff, ProjectileType.Wintermelon, ProjectileType.Star, ProjectileType.Spike, ProjectileType.Kernel, ProjectileType.Butter, ProjectileType.Fireball, ProjectileType.PeashooterPea };
 
         public static Dictionary<string, ProjectileType> projectileNamesToTypes = new Dictionary<string, ProjectileType>
         {
@@ -287,7 +333,8 @@ namespace ReplantedArchipelago
             [ProjectileType.Spike] = 20,
             [ProjectileType.Kernel] = 20,
             [ProjectileType.Butter] = 40,
-            [ProjectileType.Fireball] = 40
+            [ProjectileType.Fireball] = 40,
+            [ProjectileType.PeashooterPea] = 20
         };
 
         public static Dictionary<ZombieType, AssetReferenceGameObject> zombiePrefabs = new Dictionary<ZombieType, AssetReferenceGameObject>();
@@ -574,6 +621,197 @@ namespace ReplantedArchipelago
             { 119, new LevelLocationsEntry { Name = "Cloudy Day: Level 11", ClearLocation = 1118, FlagLocations = new int[] { 2157 } } },
             { 120, new LevelLocationsEntry { Name = "Cloudy Day: Level 12", ClearLocation = 1119, FlagLocations = new int[] { 2158, 2159 } } },
             { 121, new LevelLocationsEntry { Name = "China: The Great Wall", ClearLocation = 1120, FlagLocations = new int[] { 2160 } } }
+        };
+
+        //Default conveyor maps
+        public static readonly Dictionary<int, Dictionary<SeedType, int>> defaultConveyorMaps = new Dictionary<int, Dictionary<SeedType, int>>
+        {
+            {
+                10,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Peashooter, 20 },
+                    { SeedType.Cherrybomb, 20 },
+                    { SeedType.Repeater, 20 },
+                    { SeedType.Snowpea, 10 },
+                    { SeedType.Chomper, 5 },
+                    { SeedType.Potatomine, 10 }
+                }
+            },
+            {
+                20,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Gravebuster, 20 },
+                    { SeedType.Iceshroom, 15 },
+                    { SeedType.Doomshroom, 15 },
+                    { SeedType.Hypnoshroom, 10 },
+                    { SeedType.Scaredyshroom, 15 },
+                    { SeedType.Fumeshroom, 15 },
+                    { SeedType.Puffshroom, 10 }
+                }
+            },
+            {
+                30,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Lilypad, 25 },
+                    { SeedType.Squash, 5 },
+                    { SeedType.Threepeater, 25 },
+                    { SeedType.Tanglekelp, 5 },
+                    { SeedType.Jalapeno, 10 },
+                    { SeedType.Spikeweed, 10 },
+                    { SeedType.Torchwood, 10 },
+                    { SeedType.Tallnut, 10 }
+                }
+            },
+            {
+                40,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Lilypad, 25 },
+                    { SeedType.Seashroom, 10 },
+                    { SeedType.Magnetshroom, 5 },
+                    { SeedType.Blover, 5 },
+                    { SeedType.Cactus, 15 },
+                    { SeedType.Starfruit, 25 },
+                    { SeedType.Splitpea, 5 },
+                    { SeedType.Pumpkinshell, 10 }
+                }
+            },
+            {
+                50,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Flowerpot, 55 },
+                    { SeedType.Melonpult, 10 },
+                    { SeedType.Jalapeno, 12 },
+                    { SeedType.Cabbagepult, 10 },
+                    { SeedType.Kernelpult, 5 },
+                    { SeedType.Iceshroom, 8 }
+                }
+            },
+            {
+                70,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Flowerpot, 55 },
+                    { SeedType.Melonpult, 10 },
+                    { SeedType.Jalapeno, 12 },
+                    { SeedType.Cabbagepult, 10 },
+                    { SeedType.Kernelpult, 5 },
+                    { SeedType.Iceshroom, 8 }
+                }
+            },
+            {
+                107,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Peashooter, 100 }
+                }
+            },
+            {
+                68,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Wallnut, 85 },
+                    { SeedType.ExplodeONut, 15 },
+                    { SeedType.GiantWallnut, 15 }
+                }
+            },
+            {
+                5,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Wallnut, 85 },
+                    { SeedType.ExplodeONut, 15 }
+                }
+            },
+            {
+                52,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Wallnut, 85 },
+                    { SeedType.ExplodeONut, 15 }
+                }
+            },
+            {
+                25,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Lilypad, 25 },
+                    { SeedType.Wallnut, 15 },
+                    { SeedType.Peashooter, 25 },
+                    { SeedType.Cherrybomb, 35 }
+                }
+            },
+            {
+                60,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Lilypad, 25 },
+                    { SeedType.Wallnut, 15 },
+                    { SeedType.Peashooter, 25 },
+                    { SeedType.Cherrybomb, 35 }
+                }
+            },
+            {
+                108,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Lilypad, 30 },
+                    { SeedType.Cactus, 10 },
+                    { SeedType.Peashooter, 20 },
+                    { SeedType.Puffshroom, 15 },
+                    { SeedType.Cherrybomb, 25 }
+                }
+            },
+            {
+                45,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Flowerpot, 50 },
+                    { SeedType.Chomper, 25 },
+                    { SeedType.Pumpkinshell, 15 },
+                    { SeedType.Cherrybomb, 10 }
+                }
+            },
+            {
+                61,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Peashooter, 25 },
+                    { SeedType.Repeater, 20 },
+                    { SeedType.Torchwood, 10 },
+                    { SeedType.Cactus, 15 },
+                    { SeedType.Wallnut, 15 },
+                    { SeedType.Cherrybomb, 15 }
+                }
+            },
+            {
+                62,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Flowerpot, 155 },
+                    { SeedType.Melonpult, 5 },
+                    { SeedType.Chomper, 5 },
+                    { SeedType.Pumpkinshell, 15 },
+                    { SeedType.Jalapeno, 10 },
+                    { SeedType.Squash, 10 }
+                }
+            },
+            {
+                56,
+                new Dictionary<SeedType, int>
+                {
+                    { SeedType.Peashooter, 25 },
+                    { SeedType.Wallnut, 15 },
+                    { SeedType.Kernelpult, 5 },
+                    { SeedType.Squash, 15 },
+                    { SeedType.Lilypad, 30 },
+                    { SeedType.Iceshroom, 10 }
+                }
+            },
         };
 
         //Matches GameMode to Level Locations dict
@@ -909,5 +1147,21 @@ namespace ReplantedArchipelago
             { ItemFlags.NeverExclude, "#6D8BE8" },
             { ItemFlags.None, "#00BCBC" }
         };
+
+        public class LawnLink
+        {
+            public int Action { get; set; }
+            public int Row { get; set; }
+            public int Column { get; set; }
+            public SeedType Seed { get; set; }
+            public bool Conveyor { get; set; }
+            public int Source { get; set; }
+        }
+
+        public class SeedLink
+        {
+            public SeedType Seed { get; set; }
+            public int Source { get; set; }
+        }
     }
 }

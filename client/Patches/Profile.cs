@@ -122,7 +122,7 @@ namespace ReplantedArchipelago.Patches
                         {
                             Main.Log("Profile Validation: Too many profiles.");
                             APClient.currentlyConnected = false;
-                            Menu.ShowErrorPanel("Too Many Profiles", "There is no space to create a new profile. Please load the game with the Archipelago mod removed and delete one of your current saved profiles before trying again.");
+                            Menu.ShowErrorPanel("Too Many Profiles", "There is no space to create a new profile. Please delete an existing profile, then try again.");
                         }
                         else
                         {

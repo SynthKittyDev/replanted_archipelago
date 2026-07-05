@@ -84,6 +84,12 @@ namespace ReplantedArchipelago
         public static bool individualTileUnlockItems;
         public static JObject wavesanityMap;
         public static JObject costumeChances;
+        public static bool seedLinkEnabled;
+        public static bool lawnLinkEnabled;
+        public static JObject lawnLinkChances;
+        public static bool lockConveyorPlants;
+        public static bool lockVasebreakerPlants;
+        public static bool lockIZombieZombies;
 
         public static int shopPages;
         public static int shopPagesVisible = 0;
@@ -179,7 +185,13 @@ namespace ReplantedArchipelago
                     individualTileUnlockItems = Convert.ToBoolean(slotData["individual_tile_unlock_items"]);
                     wavesanityMap = (JObject)slotData["wavesanity_map"];
                     costumeChances = (JObject)slotData["costume_chances"];
-                    
+                    seedLinkEnabled = Convert.ToBoolean(slotData["seedlink_enabled"]);
+                    lawnLinkEnabled = Convert.ToBoolean(slotData["lawnlink_enabled"]);
+                    lawnLinkChances = (JObject)slotData["lawnlink_chances"];
+                    lockConveyorPlants = Convert.ToBoolean(slotData["lock_conveyor_plants"]);
+                    lockVasebreakerPlants = Convert.ToBoolean(slotData["lock_vasebreaker_plants"]);
+                    lockIZombieZombies = Convert.ToBoolean(slotData["lock_izombie_zombies"]);
+
                     plantStatRandomisationEnabled = (firingRates.Count > 0 || rechargeTimes.Count > 0 || projectileDamages.Count > 0);
 
                     energyLinkEnabled = Convert.ToBoolean(slotData["energylink_enabled"]);
@@ -235,6 +247,22 @@ namespace ReplantedArchipelago
                     {
                         Main.Log("Ring Link enabled.");
                         apSession.ConnectionInfo.UpdateConnectionOptions(apSession.ConnectionInfo.Tags.Append("RingLink").ToArray());
+                    }
+
+                    if (seedLinkEnabled)
+                    {
+                        Main.Log("Seed Link enabled.");
+                        apSession.ConnectionInfo.UpdateConnectionOptions(apSession.ConnectionInfo.Tags.Append("SeedLink").ToArray());
+                    }
+
+                    if (lawnLinkEnabled)
+                    {
+                        Main.Log("Lawn Link enabled.");
+                        apSession.ConnectionInfo.UpdateConnectionOptions(apSession.ConnectionInfo.Tags.Append("LawnLink").ToArray());
+                    }
+
+                    if (ringLinkEnabled || seedLinkEnabled || lawnLinkEnabled)
+                    {
                         apSession.Socket.PacketReceived += HandlePacket;
                     }
 
@@ -316,6 +344,10 @@ namespace ReplantedArchipelago
                         {
                             Main.cachedLevelDataModel.UpdateModelData();
                         }
+                    }
+                    else
+                    {
+                        apSession.Socket.DisconnectAsync();
                     }
                 }
             }
@@ -491,18 +523,38 @@ namespace ReplantedArchipelago
         {
             try
             {
+                Main.Log("Packet received");
                 if (packet.PacketType == ArchipelagoPacketType.Bounced)
                 {
                     BouncedPacket bouncedPacket = (BouncedPacket)packet;
                     if (bouncedPacket != null && bouncedPacket.Data != null && bouncedPacket.Data.ContainsKey("source") && (int)bouncedPacket.Data["source"] != apSession.Players.ActivePlayer.Slot)
                     {
-                        if (bouncedPacket.Tags.Contains("RingLink") && bouncedPacket.Data.ContainsKey("amount"))
+                        if (ringLinkEnabled && bouncedPacket.Tags.Contains("RingLink") && bouncedPacket.Data.ContainsKey("amount"))
                         {
                             int amount = (int)bouncedPacket.Data["amount"];
                             Gameplay.receivedRingLinkAmount += amount;
                         }
+                        else if (seedLinkEnabled && bouncedPacket.Tags.Contains("SeedLink") && bouncedPacket.Data.ContainsKey("seed"))
+                        {
+                            SeedLink seedLink = new SeedLink();
+                            seedLink.Seed = (SeedType)(int)bouncedPacket.Data["seed"];
+                            seedLink.Source = (int)bouncedPacket.Data["source"];
+                            Gameplay.queuedSeedLinks.Add(seedLink);
+                            Main.Log($"Received Seed Link: {seedLink.Seed}");
+                        }
+                        else if (lawnLinkEnabled && bouncedPacket.Tags.Contains("LawnLink") && bouncedPacket.Data.ContainsKey("action") && bouncedPacket.Data.ContainsKey("row") && bouncedPacket.Data.ContainsKey("column") && bouncedPacket.Data.ContainsKey("seed") && bouncedPacket.Data.ContainsKey("conveyor"))
+                        {
+                            LawnLink lawnLink = new LawnLink();
+                            lawnLink.Action = (int)bouncedPacket.Data["action"]; //0 = Plant, 1 = Dig
+                            lawnLink.Row = (int)bouncedPacket.Data["row"];
+                            lawnLink.Column = (int)bouncedPacket.Data["column"];
+                            lawnLink.Seed = (SeedType)(int)bouncedPacket.Data["seed"];
+                            lawnLink.Conveyor = (bool)bouncedPacket.Data["conveyor"];
+                            lawnLink.Source = (int)bouncedPacket.Data["source"];
+                            Gameplay.queuedLawnLinks.Add(lawnLink);
+                            Main.Log($"Received Lawn Link: {lawnLink.Action} {lawnLink.Row} {lawnLink.Column} {lawnLink.Seed} {lawnLink.Conveyor}");
+                        }
                     }
-
                 }
             }
             catch
@@ -545,9 +597,16 @@ namespace ReplantedArchipelago
 
         public static bool HasSeedType(SeedType theSeedType)
         {
-            if (currentlyConnected && receivedItems != null && receivedItems.Contains(100 + Array.IndexOf(Data.seedTypes, theSeedType)))
+            if (currentlyConnected && receivedItems != null)
             {
-                return true;
+                if (Data.unusualSeedTypes.ContainsKey(theSeedType))
+                {
+                    return receivedItems.Contains(unusualSeedTypes[theSeedType]);
+                }
+                else
+                {
+                    return receivedItems.Contains(100 + Array.IndexOf(Data.seedTypes, theSeedType));
+                }
             }
             else if (Main.cachedGameplayActivity != null && Main.cachedGameplayActivity.GameMode == GameMode.ChallengeRainingSeeds)
             {
@@ -842,6 +901,38 @@ namespace ReplantedArchipelago
                 { "amount", amount }
             };
             apSession.Socket.SendPacketAsync(ringLinkPacket);
+        }
+
+        public static void SendSeedLinkPacket(SeedType theSeedType)
+        {
+            BouncePacket seedLinkPacket = new BouncePacket();
+            seedLinkPacket.Tags = new List<string>() { "SeedLink" };
+            seedLinkPacket.Data = new Dictionary<string, JToken>
+            {
+                { "source", apSession.ConnectionInfo.Slot },
+                { "time",  DateTimeOffset.UtcNow.ToUnixTimeSeconds()},
+                { "seed", (int)theSeedType }
+            };
+            Main.Log($"Sending Seed Link: {theSeedType}");
+            apSession.Socket.SendPacketAsync(seedLinkPacket);
+        }
+
+        public static void SendLawnLinkPacket(LawnLink lawnLink)
+        {
+            BouncePacket lawnLinkPacket = new BouncePacket();
+            lawnLinkPacket.Tags = new List<string>() { "LawnLink" };
+            lawnLinkPacket.Data = new Dictionary<string, JToken>
+            {
+                { "source", apSession.ConnectionInfo.Slot },
+                { "time",  DateTimeOffset.UtcNow.ToUnixTimeSeconds()},
+                { "action", lawnLink.Action },
+                { "row", lawnLink.Row },
+                { "column", lawnLink.Column },
+                { "seed", (int)lawnLink.Seed },
+                { "conveyor", lawnLink.Conveyor }
+            };
+            Main.Log($"Sending Lawn Link: {lawnLink.Action} {lawnLink.Row} {lawnLink.Column} {lawnLink.Seed} {lawnLink.Conveyor}");
+            apSession.Socket.SendPacketAsync(lawnLinkPacket);
         }
     }
 }

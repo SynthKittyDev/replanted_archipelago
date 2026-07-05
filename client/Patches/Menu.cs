@@ -96,7 +96,7 @@ namespace ReplantedArchipelago.Patches
                 Data.errorTemplate = RemoveUnwantedComponents(__instance.transform.parent.Find("P_UsersPanel_InvalidName").gameObject, false);
                 Data.clientTemplate = __instance.transform.parent.Find("P_UsersPanel").gameObject;
                 Data.inputTemplate = __instance.transform.parent.Find("P_UsersPanel_Rename/Canvas/Layout/Center/Rename/NameInputField").gameObject;
-                Data.logTemplate = RemoveUnwantedComponents(__instance.transform.parent.Find("P_UsersPanel/Canvas/Layout/Center/Main/InsetWindow/P_UsersPanel_UserEntry").gameObject, true);
+                Data.logTemplate = __instance.transform.parent.Find("P_UsersPanel/Canvas/Layout/Center/Main/InsetWindow/P_UsersPanel_UserEntry").gameObject;
                 Data.buttonTemplate = RemoveUnwantedComponents(__instance.transform.parent.Find("P_UsersPanel/Canvas/Layout/Center/Main/Buttons/P_BacicButton_Rename").gameObject, false);
                 Data.subheaderTemplate = RemoveUnwantedComponents(__instance.transform.parent.Find("P_UsersPanel_InvalidName/Canvas/Layout/Center/NameConflict/SubheadingText").gameObject, false);
                 Data.headerTemplate = RemoveUnwantedComponents(__instance.transform.parent.Find("P_UsersPanel_InvalidName/Canvas/Layout/Center/NameConflict/HeaderText").gameObject, false);
@@ -163,7 +163,7 @@ namespace ReplantedArchipelago.Patches
                     }
 
                     GameObject usersPanel = __instance.transform.parent.Find("P_UsersPanel").gameObject;
-                    if (usersPanel != null)
+                    if (usersPanel != null && APClient.currentlyConnected)
                     {
                         usersPanel.SetActive(false);
                     }
@@ -354,6 +354,18 @@ namespace ReplantedArchipelago.Patches
             Button okButton = center.Find("Buttons/P_BacicButton_OK").GetComponent<Button>();
             okButton.onClick.RemoveAllListeners();
             okButton.onClick.AddListener((Action)HideErrorPanel);
+            if (header == "Too Many Profiles")
+            {
+                okButton.onClick.AddListener((Action)ShowUserPanel);
+            }
+        }
+
+        public static void ShowUserPanel()
+        {
+            GameObject accountSign = GameObject.Find("Canvas/Layout/Center/Main/AccountSign").gameObject;
+            accountSign.SetActive(true);
+            GameObject.Find("FrontendPanels/P_MainMenu/Canvas/Layout/Center/Main/AccountSign/SignInButton").GetComponent<Button>().onClick.Invoke();
+            accountSign.SetActive(false);
         }
 
         public static void HideErrorPanel()
@@ -639,7 +651,7 @@ namespace ReplantedArchipelago.Patches
             RectTransform clientLogsRect = main.Find("InsetWindow/ClientLogs").GetComponent<RectTransform>();
             ScrollRect scrollRect = main.GetComponent<ScrollRect>();
 
-            GameObject entry = GameObject.Instantiate(Data.logTemplate, clientLogsRect);
+            GameObject entry = GameObject.Instantiate(RemoveUnwantedComponents(Data.logTemplate, true), clientLogsRect);
             TextMeshProUGUI textComponent = entry.transform.Find("Text (TMP)").GetComponent<TextMeshProUGUI>();
             textComponent.text = message;
             textComponent.alignment = TextAlignmentOptions.Left;
