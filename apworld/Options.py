@@ -28,7 +28,7 @@ class HugeWaveLocations(Toggle):
 class WavesanityLocations(Range):
     """
     Include additional locations for small waves.
-    This may add a lot of filler items. Make sure to consider any other players in your multiworld before increasing this number.
+    This may add a lot of filler items. Make sure to consider any other players in your MultiWorld before increasing this number.
 
     This number will be automatically increased if there aren't enough locations available to place all of your items.
     This number will be automatically decreased if there aren't enough levels enabled.
@@ -499,6 +499,27 @@ class EasyUpgradePlants(Toggle):
     display_name = "Easy Upgrade Plants"
     default = False
 
+class LockConveyorPlants(Toggle):
+    """
+    If this option is enabled, then conveyor levels will be unable to serve you plants that you haven't yet unlocked.
+    """
+    display_name = "Lock Conveyor Plants"
+    default = False
+
+class LockVasebreakerPlants(Toggle):
+    """
+    If this option is enabled, then Vasebreaker will be unable to serve you plants that you haven't yet unlocked.
+    """
+    display_name = "Lock Vasebreaker Plants"
+    default = False    
+
+class LockIZombieZombies(Toggle):
+    """
+    If this option is enabled, each zombie type in "I, Zombie" will be locked behind individual unlock items.
+    """
+    display_name = "Lock I, Zombie Zombies"
+    default = False
+
 class ImitaterBehaviour(Choice):
     """
     Determines which seeds can be copied by Imitater.
@@ -710,8 +731,9 @@ class CostumeChances(OptionCounter):
 class GotyCompatabilityMode(Toggle):
     """
     This APWorld is primarily designed to be used with Plants vs. Zombies: Replanted.
-    If you wish to connect to this world using GOTY, you can - but there are certain limitations.    
-    Enabling this option will automatically adjust your YAML to ensure it is compatible with the restrictions of Victor Tran's GOTY client.
+
+    If you wish to connect to this world using Victor Tran's GOTY client, you can - but there are certain limitations.
+    Enabling this option will automatically adjust your YAML to ensure it is compatible with these restrictions.
     """
     display_name = "GOTY Compatability Mode"
     default = False
@@ -729,6 +751,40 @@ class RingLink(Toggle):
     """
     display_name = "Ring Link"
     default = False
+
+class SeedLink(Toggle):
+    """
+    All Plants vs. Zombies players in your MultiWorld that have enabled Seed Link will be able to trigger each other's matching seed packet cooldowns when placing a plant.
+    """
+    display_name = "Seed Link"
+    default = False    
+
+class LawnLink(Toggle):
+    """
+    All Plants vs. Zombies players in your MultiWorld that have enabled Lawn Link will be able to interact with each other's lawns.
+    """
+    display_name = "Lawn Link"
+    default = False    
+
+class LawnLinkChances(OptionCounter):
+    """
+    Determines the likelihoods of Lawn Link effects as percentages out of 100.
+
+    - add_plant: The percentage chance that a plant placed by another player will appear on your lawn, if that tile is free.
+    - overwrite_plant: The percentage chance that a plant placed by another player will appear on your lawn, if that tile is not free. This results in the plant that was there being replaced.
+    - remove_plant: The percentage chance that a plant lost by another player will result in the loss of a plant on your lawn, if a plant exists on your lawn in the same tile.
+
+    This setting requires Lawn Link to be enabled.
+    """
+    display_name = "Lawn Link Chances"
+    min = 0
+    max = 100
+    valid_keys = ["add_plant", "overwrite_plant", "remove_plant"]
+    default = {
+        "add_plant": 15,
+        "overwrite_plant": 5,
+        "remove_plant": 15
+    }
 
 class ZombieWeightRandomisation(Choice):
     """
@@ -779,6 +835,9 @@ class PVZROptions(PerGameCommonOptions):
     death_link: DeathLink
     ring_link: RingLink
     energy_link: EnergyLink
+    seed_link: SeedLink
+    lawn_link: LawnLink
+    lawn_link_chances: LawnLinkChances
     adventure_mode_progression: AdventureModeProgression
     minigame_levels: MinigameLevels
     puzzle_levels: PuzzleLevels
@@ -809,6 +868,9 @@ class PVZROptions(PerGameCommonOptions):
     plant_stat_randomisation: PlantStatRandomisation
     maintain_vanilla_projectile_strength: MaintainVanillaProjectileStrength
     plant_stat_randomisation_blacklist: PlantStatRandomisationBlacklist
+    lock_conveyor_plants: LockConveyorPlants
+    lock_vasebreaker_plants: LockVasebreakerPlants
+    lock_izombie_zombies: LockIZombieZombies
     easy_upgrade_plants: EasyUpgradePlants
     imitater_behaviour: ImitaterBehaviour
     disable_storm_flashes: DisableStormFlashes
@@ -841,12 +903,12 @@ class PVZROptions(PerGameCommonOptions):
     lawn_randomiser_trap_weight: LawnRandomiserTrapWeight
 
 OPTION_GROUPS = [
-    OptionGroup("AP Settings", [GotyCompatabilityMode, DeathLink, RingLink, EnergyLink]),
+    OptionGroup("AP Settings", [GotyCompatabilityMode, DeathLink, RingLink, EnergyLink, SeedLink, LawnLink, LawnLinkChances]),
     OptionGroup("Level Access", [AdventureModeProgression, MinigameLevels, PuzzleLevels, SurvivalLevels, CloudyDayLevels, BonusLevels, ChinaLevel]),    
     OptionGroup("Extra Locations", [HugeWaveLocations, WavesanityLocations, ShopBehaviour, ShopItems]),
     OptionGroup("Goal", [AdventureLevelsGoal, AdventureAreasGoal, MinigameLevelsGoal, PuzzleLevelsGoal, SurvivalLevelsGoal, CloudyDayLevelsGoal, BonusLevelsGoal, TotalLevelsGoal, TacoHuntItems, TacoHuntPercentage, FastGoal]),
     OptionGroup("Zombie & Plant Randomisation", [ConveyorRandomisation, ZombieRandomisation, RandomisedZombies, ZombieRandomisedModes, ZombieWeightRandomisation, PlantStatRandomisation, MaintainVanillaProjectileStrength, PlantStatRandomisationBlacklist]),
-    OptionGroup("Game Tweaks", [EasyUpgradePlants, ImitaterBehaviour, DisableStormFlashes, MusicShuffle, CostumeChances]),
+    OptionGroup("Game Tweaks", [LockConveyorPlants, LockVasebreakerPlants, LockIZombieZombies, EasyUpgradePlants, ImitaterBehaviour, DisableStormFlashes, MusicShuffle, CostumeChances]),
     OptionGroup("Item Generation", [ZenGardenItems, StartingSunUpgrades, MaximumSunUpgrades, MowerRewardUpgrades, RandomSeedFiller, ZombieFreezeFiller, ZombieHypnosisFiller, SunBurstFiller, StartingPlants, StartingSeedSlots, EarlySunflower, EarlyShovel, EarlyZenGarden, ProgressiveSunCapacityItems, IndividualTileUnlockItems]),
     OptionGroup("Traps", [TrapPercentage, MowerDeployTrapWeight, SeedPacketCooldownTrapWeight, ZombieAmbushTrapWeight, ZombieShuffleTrapWeight, ZombieCaffeineTrapWeight, RVTrapWeight, CraterTrapWeight, LawnFlipTrapWeight, LawnRandomiserTrapWeight]),
 ]

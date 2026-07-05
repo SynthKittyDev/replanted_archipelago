@@ -67,7 +67,23 @@ item_ids: dict[str, int] = {
 	"Zombie Caffeine Trap": 78,
 	"Instant Zombie Hypnosis": 79,
 	"Crater Trap": 80,
-	"Sun Burst": 81
+	"Sun Burst": 81,
+	"Explode-o-nut (Wall-nut Bowling)": 82,
+	"Giant Wall-nut (Wall-nut Bowling)": 83,
+	"Backwards Repeater (Vasebreaker)": 84,
+	"Zombie (I, Zombie)": 85,
+	"Conehead Zombie (I, Zombie)": 86,
+	"Buckethead Zombie (I, Zombie)": 87,
+	"Football Zombie (I, Zombie)": 88,
+	"Screen Door Zombie (I, Zombie)": 89,
+	"Digger Zombie (I, Zombie)": 90,
+	"Ladder Zombie (I, Zombie)": 91,
+	"Bungee Zombie (I, Zombie)": 92,
+	"Balloon Zombie (I, Zombie)": 93,
+	"Pole Vaulting Zombie (I, Zombie)": 94,
+	"Imp (I, Zombie)": 95,
+	"Gargantuar (I, Zombie)": 96,
+	"Dancing Zombie (I, Zombie)": 97,
 }
 
 #100-199 is reserved for plants

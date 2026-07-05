@@ -18,6 +18,9 @@ class Level:
     flag_location_ids: list[int] = field(default_factory = list)
     conveyor_default: int = 0
     forced_plants: set[str] = field(default_factory = set)
+    vasebreaker_plants: dict[str, int] = field(default_factory=dict)
+    izombie_zombies: set[str] = field(default_factory = set)
+    core_conveyor_plants: set[str] = field(default_factory = set)
 
     special: str | None = None
     conveyor: dict | None = None
@@ -41,6 +44,9 @@ class Level:
             self.lawn_rows = 6
 
         self.unmodified = copy.deepcopy(self)
+
+        if len(self.core_conveyor_plants) == 0 and self.conveyor != None:
+            self.core_conveyor_plants = set(self.conveyor.keys())
 
     def randomise_zombies(self, world, zombie_blacklist):
         unmodified_zombies = copy.deepcopy(self.unmodified.zombies)
@@ -134,6 +140,8 @@ class Level:
         elif self.special == "column":
             conveyor_weights["Flower Pot"] = 155
             conveyor_weights["Jalapeno"] = world.random.randint(12, 17)
+
+        self.core_conveyor_plants = list(conveyor_weights.keys())
 
         if len(self.conveyor) - len(conveyor_weights) >= 1: #If there are more slots to add plants, add an instant/wall
             handy_conveyor_plants = ["Squash", "Cherry Bomb", "Jalapeno", "Wall-nut", "Pumpkin", "Tall-nut"]
@@ -272,6 +280,32 @@ class Level:
                 else: #Out of seed slots
                     return False
             self.expected_loadout = selected_plants
+
+
+        #Vasebreaker plant locks
+        elif self.special == "vasebreaker" and world.options.lock_vasebreaker_plants.value:
+            total_vases = sum(self.vasebreaker_plants.values())
+            empty_vases = sum([self.vasebreaker_plants[plant] for plant in self.vasebreaker_plants if not state.has(plant, player)])
+            if (empty_vases/total_vases) > 0.1: #Level is OOL if more than 10% of vases are empty
+                return False 
+
+        #I, Zombie locks
+        elif self.special == "izombie" and world.options.lock_izombie_zombies.value:
+            locked_zombies = len([zombie for zombie in self.izombie_zombies if not state.has(zombie, player)])
+            if locked_zombies > 0:
+                return False
+
+        #Conveyor locks
+        elif self.conveyor != None and world.options.lock_conveyor_plants.value:
+            locked_plants = [plant for plant in self.core_conveyor_plants if not state.has(plant, player)]
+            if len(locked_plants) > 0:
+                return False
+
+        #Bowling locks
+        elif self.special == "bowling" and world.options.lock_conveyor_plants.value:
+            if not (state.has("Wall-nut", player)):
+                return False
+
         return True
 
     def create_plant_combinations(self, world):
@@ -414,7 +448,7 @@ class Level:
                     possible_combinations["garg"] = [{"Ice-shroom", "Doom-shroom", "Kernel-pult", "Potato Mine"}]
 
         #Cherry Bomb/Jalapeno guarantee
-        if (self.special in ["little"]) or self.name in ["Mini-games: Column Like You See 'Em"]:
+        if (self.special in ["little"]):
             possible_combinations["little"] = [{"Cherry Bomb"}, {"Jalapeno"}]
 
         #Insta-kill for Roof: Level 5-5
@@ -427,6 +461,10 @@ class Level:
         #Grave Buster
         if self.name == "Bonus Levels: Grave Danger" or (self.type == "Survival" and self.at_night and not self.has_pool):
             possible_combinations["grave"] = [{"Grave Buster"}]
+
+        #Column Like You See 'Em hard requirements
+        if self.name in ["Mini-games: Column Like You See 'Em"]:
+            possible_combinations["column"] = [{"Jalapeno", "Pumpkin"}]
 
         #Spikeweed
         if self.name in ["Mini-games: Bobsled Bonanza", "Mini-games: Pogo Party", "Bonus Levels: Air Raid"] and "Zomboni" in self.zombies:
@@ -525,7 +563,7 @@ def create_levels(world = None):
             unlock_item_name = "Day Unlock: Level 1-5",
             level_id = 5,
             ignore_locked_tiles = True,
-            waves = 8
+            waves = 8,
         ),
 
         "1-6": Level(
@@ -893,6 +931,7 @@ def create_levels(world = None):
             unlock_item_name = "Fog Unlock: Level 4-5",
             level_id = 35,
             ignore_locked_tiles = True,
+            vasebreaker_plants = {"Peashooter": 5 + 4 + 5, "Snow Pea": 5 + 5, "Squash": 5 + 4, "Hypno-shroom": 5}
         ),
 
         "4-6": Level(
@@ -1249,7 +1288,7 @@ def create_levels(world = None):
                 type = "Mini-games",
                 flag_location_ids = [2046, 2047],
                 clear_location_id = 1061,
-                conveyor = {'Flower Pot': 155, 'Melon-Pult': 5, 'Chomper': 5, 'Pumpkin': 15, 'Jalapeno': 10, 'Squash': 10},
+                conveyor = {'Flower Pot': 155, 'Melon-pult': 5, 'Chomper': 5, 'Pumpkin': 15, 'Jalapeno': 10, 'Squash': 10},
                 special = "column",
                 conveyor_default = 6,
                 unlock_item_name = "Mini-game Unlock: Column Like You See 'Em",
@@ -1381,7 +1420,8 @@ def create_levels(world = None):
                 special = "vasebreaker",
                 unlock_item_name = "Puzzle Unlock: Vasebreaker",
                 level_id = 71,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                vasebreaker_plants = {"Peashooter": 5, "Snow Pea": 5, "Squash": 5}
             ),
 
             "ScaryPotter2": Level(
@@ -1395,7 +1435,8 @@ def create_levels(world = None):
                 special = "vasebreaker",
                 unlock_item_name = "Puzzle Unlock: To The Left",
                 level_id = 72,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                vasebreaker_plants = {"Backwards Repeater (Vasebreaker)": 7, "Wall-nut": 3, "Potato Mine": 2, "Snow Pea": 3}
             ),
 
             "ScaryPotter3": Level(
@@ -1409,7 +1450,9 @@ def create_levels(world = None):
                 special = "vasebreaker",
                 unlock_item_name = "Puzzle Unlock: Third Vase",
                 level_id = 73,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                vasebreaker_plants = {"Wall-nut": 3, "Snow Pea": 4, "Backwards Repeater (Vasebreaker)": 6, "Hypno-shroom": 3, "Squash": 2}
+
             ),
 
             "ScaryPotter4": Level(
@@ -1423,7 +1466,8 @@ def create_levels(world = None):
                 special = "vasebreaker",
                 unlock_item_name = "Puzzle Unlock: Chain Reaction",
                 level_id = 74,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                vasebreaker_plants = {"Backwards Repeater (Vasebreaker)": 4, "Puff-shroom": 11, "Hypno-shroom": 4}
             ),
 
             "ScaryPotter5": Level(
@@ -1437,7 +1481,8 @@ def create_levels(world = None):
                 special = "vasebreaker",
                 unlock_item_name = "Puzzle Unlock: M is for Metal",
                 level_id = 75,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                vasebreaker_plants = {"Snow Pea": 2, "Backwards Repeater (Vasebreaker)": 6, "Hypno-shroom": 2, "Squash": 4, "Pumpkin": 3, "Magnet-shroom": 3}
             ),
 
             "ScaryPotter6": Level(
@@ -1451,7 +1496,8 @@ def create_levels(world = None):
                 special = "vasebreaker",
                 unlock_item_name = "Puzzle Unlock: Scary Potter",
                 level_id = 76,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                vasebreaker_plants = {"Backwards Repeater (Vasebreaker)": 7, "Squash": 2, "Threepeater": 2, "Torchwood": 4, "Tall-nut": 5}
             ),
 
             "ScaryPotter7": Level(
@@ -1465,7 +1511,9 @@ def create_levels(world = None):
                 special = "vasebreaker",
                 unlock_item_name = "Puzzle Unlock: Hokey Pokey",
                 level_id = 77,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                vasebreaker_plants = {"Wall-nut": 3, "Squash": 3, "Spikeweed": 13}
+
             ),
 
             "ScaryPotter8": Level(
@@ -1479,7 +1527,8 @@ def create_levels(world = None):
                 special = "vasebreaker",
                 unlock_item_name = "Puzzle Unlock: Another Chain Reaction",
                 level_id = 78,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                vasebreaker_plants = {"Backwards Repeater (Vasebreaker)": 4, "Puff-shroom": 7, "Squash": 5, "Tall-nut": 3}
             ),
 
             "ScaryPotter9": Level(
@@ -1493,7 +1542,8 @@ def create_levels(world = None):
                 special = "vasebreaker",
                 unlock_item_name = "Puzzle Unlock: Ace of Vase",
                 level_id = 79,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                vasebreaker_plants = {"Peashooter": 2, "Wall-nut": 1, "Potato Mine": 1, "Snow Pea": 2, "Backwards Repeater (Vasebreaker)": 6, "Squash": 5, "Threepeater": 2, "Plantern": 1}
             ),
 
             "PuzzleIZombie1": Level(
@@ -1507,7 +1557,8 @@ def create_levels(world = None):
                 special = "izombie",
                 unlock_item_name = "Puzzle Unlock: I, Zombie",
                 level_id = 80,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                izombie_zombies = {"Zombie (I, Zombie)", "Buckethead Zombie (I, Zombie)", "Football Zombie (I, Zombie)"}
             ),
 
             "PuzzleIZombie2": Level(
@@ -1521,7 +1572,8 @@ def create_levels(world = None):
                 special = "izombie",
                 unlock_item_name = "Puzzle Unlock: I, Zombie Too",
                 level_id = 81,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                izombie_zombies = {"Zombie (I, Zombie)", "Buckethead Zombie (I, Zombie)", "Screen Door Zombie (I, Zombie)"}
             ),
 
             "PuzzleIZombie3": Level(
@@ -1535,7 +1587,8 @@ def create_levels(world = None):
                 special = "izombie",
                 unlock_item_name = "Puzzle Unlock: Can You Dig It?",
                 level_id = 82,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                izombie_zombies = {"Zombie (I, Zombie)", "Buckethead Zombie (I, Zombie)", "Digger Zombie (I, Zombie)"}
             ),
 
             "PuzzleIZombie4": Level(
@@ -1549,7 +1602,8 @@ def create_levels(world = None):
                 special = "izombie",
                 unlock_item_name = "Puzzle Unlock: Totally Nuts",
                 level_id = 83,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                izombie_zombies = {"Zombie (I, Zombie)", "Buckethead Zombie (I, Zombie)", "Ladder Zombie (I, Zombie)"}
             ),
 
             "PuzzleIZombie5": Level(
@@ -1563,7 +1617,8 @@ def create_levels(world = None):
                 special = "izombie",
                 unlock_item_name = "Puzzle Unlock: Dead Zeppelin",
                 level_id = 84,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                izombie_zombies = {"Zombie (I, Zombie)", "Buckethead Zombie (I, Zombie)", "Bungee Zombie (I, Zombie)", "Balloon Zombie (I, Zombie)"}
             ),
 
             "PuzzleIZombie6": Level(
@@ -1577,7 +1632,8 @@ def create_levels(world = None):
                 special = "izombie",
                 unlock_item_name = "Puzzle Unlock: Me Smash!",
                 level_id = 85,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                izombie_zombies = {"Zombie (I, Zombie)", "Buckethead Zombie (I, Zombie)", "Pole Vaulting Zombie (I, Zombie)", "Gargantuar (I, Zombie)"}
             ),
 
             "PuzzleIZombie7": Level(
@@ -1591,7 +1647,8 @@ def create_levels(world = None):
                 special = "izombie",
                 unlock_item_name = "Puzzle Unlock: ZomBoogie",
                 level_id = 86,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                izombie_zombies = {"Zombie (I, Zombie)", "Buckethead Zombie (I, Zombie)", "Pole Vaulting Zombie (I, Zombie)", "Dancing Zombie (I, Zombie)"}
             ),
 
             "PuzzleIZombie8": Level(
@@ -1605,7 +1662,8 @@ def create_levels(world = None):
                 special = "izombie",
                 unlock_item_name = "Puzzle Unlock: Three Hit Wonder",
                 level_id = 87,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                izombie_zombies = {"Imp (I, Zombie)", "Buckethead Zombie (I, Zombie)", "Conehead Zombie (I, Zombie)", "Bungee Zombie (I, Zombie)", "Digger Zombie (I, Zombie)", "Ladder Zombie (I, Zombie)"}
             ),
 
             "PuzzleIZombie9": Level(
@@ -1619,7 +1677,8 @@ def create_levels(world = None):
                 special = "izombie",
                 unlock_item_name = "Puzzle Unlock: All your brainz r belong to us",
                 level_id = 88,
-                ignore_locked_tiles = True
+                ignore_locked_tiles = True,
+                izombie_zombies = {"Imp (I, Zombie)", "Buckethead Zombie (I, Zombie)", "Pole Vaulting Zombie (I, Zombie)", "Conehead Zombie (I, Zombie)", "Football Zombie (I, Zombie)", "Bungee Zombie (I, Zombie)", "Digger Zombie (I, Zombie)", "Ladder Zombie (I, Zombie)"}
             )
             }
     if world == None or world.options.survival_levels.value != 0:

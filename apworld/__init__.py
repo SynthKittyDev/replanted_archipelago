@@ -1,4 +1,4 @@
-GEN_VERSION = "1.8" #Used to match with client
+GEN_VERSION = "1.9" #Used to match with client
 from BaseClasses import Item, ItemClassification
 from worlds.AutoWorld import WebWorld, World
 from .Items import PVZRItem, item_ids
@@ -42,6 +42,24 @@ class PVZRWorld(World):
     item_name_to_id = item_ids
     location_name_to_id = LOCATION_ID_FROM_NAME
 
+    item_name_groups = {
+        "Level": {level.unlock_item_name for level in create_levels().values()},
+        "Plant": {plant.name for plant in create_plants().values()},
+
+        "Adventure": {level.unlock_item_name for level in create_levels().values() if level.type == "Adventure"}.union({"Day Access", "Night Access", "Pool Access", "Fog Access", "Roof Access"}),
+        "Day": {level.unlock_item_name for level in create_levels().values() if level.type == "Adventure" and level.location == "Day"}.union({"Day Access"}),
+        "Night": {level.unlock_item_name for level in create_levels().values() if level.type == "Adventure" and level.location == "Day"}.union({"Night Access"}),
+        "Pool": {level.unlock_item_name for level in create_levels().values() if level.type == "Adventure" and level.location == "Day"}.union({"Pool Access"}),
+        "Fog": {level.unlock_item_name for level in create_levels().values() if level.type == "Adventure" and level.location == "Day"}.union({"Fog Access"}),
+        "Roof": {level.unlock_item_name for level in create_levels().values() if level.type == "Adventure" and level.location == "Day"}.union({"Roof Access"}),
+
+        "Mini-games": {level.unlock_item_name for level in create_levels().values() if level.type == "Mini-games"}.union({"Mini-games"}),
+        "Puzzle": {level.unlock_item_name for level in create_levels().values() if level.type == "Puzzle"}.union({"Puzzle Mode"}),
+        "Survival": {level.unlock_item_name for level in create_levels().values() if level.type == "Survival"}.union({"Survival Mode"}),
+        "Bonus Levels": {level.unlock_item_name for level in create_levels().values() if level.type == "Bonus Levels"}.union({"Bonus Levels"}),
+        "Cloudy Day": {level.unlock_item_name for level in create_levels().values() if level.type == "Cloudy Day"}.union({"Cloudy Day"})
+    }
+
     ut_can_gen_without_yaml = True
 
     def get_shop_unlock_item_name(self) -> str:
@@ -64,6 +82,23 @@ class PVZRWorld(World):
             progression_items.append("Bonus Levels")
         if self.options.china_level.value == 2:
             progression_items.append("China Access")
+        if self.options.lock_vasebreaker_plants.value and self.options.puzzle_levels.value != 0:
+            progression_items.append("Backwards Repeater (Vasebreaker)")
+        if self.options.lock_conveyor_plants:
+            progression_items += ["Wall-nut", "Explode-o-nut (Wall-nut Bowling)"]
+            if self.options.minigame_levels.value != 0:
+                progression_items.append("Giant Wall-nut (Wall-nut Bowling)")
+            for level in self.included_levels.values():
+                for plant in level.core_conveyor_plants:
+                    if not plant in progression_items:
+                        progression_items.append(plant)
+        if self.options.lock_vasebreaker_plants:
+            for level in [level for level in self.included_levels.values() if level.special == "vasebreaker"]:
+                for plant in level.vasebreaker_plants.keys():
+                    if not plant in progression_items:
+                        progression_items.append(plant)
+        if self.options.lock_izombie_zombies and self.options.puzzle_levels.value != 0:
+            progression_items += ['Zombie (I, Zombie)', 'Conehead Zombie (I, Zombie)', 'Buckethead Zombie (I, Zombie)', 'Football Zombie (I, Zombie)', 'Screen Door Zombie (I, Zombie)', 'Digger Zombie (I, Zombie)', 'Ladder Zombie (I, Zombie)', 'Bungee Zombie (I, Zombie)', 'Balloon Zombie (I, Zombie)', 'Pole Vaulting Zombie (I, Zombie)', 'Imp (I, Zombie)', 'Gargantuar (I, Zombie)', 'Dancing Zombie (I, Zombie)']
 
         if self.options.shop_behaviour.value > 0:
             progression_items.append(self.get_shop_unlock_item_name())
@@ -84,7 +119,7 @@ class PVZRWorld(World):
         if self.options.adventure_mode_progression.value in [1, 2]:
             progression_items += ["Night Access", "Pool Access", "Fog Access", "Roof Access"]
 
-        progression_items += [progression_plant for progression_plant in self.progression_plants if progression_plant not in self.starting_plants]
+        progression_items += [progression_plant for progression_plant in self.progression_plants if progression_plant not in self.starting_plants + progression_items]
         progression_items += ["Extra Seed Slot"] * (10 - (self.preplaced_progression.count("Extra Seed Slot")))
 
         if self.options.progressive_sun_capacity_items.value:
@@ -168,24 +203,6 @@ class PVZRWorld(World):
             self.filler_item_names: list[str] = []
             self.trap_item_names: list[str] = []
 
-            #Restrictive start prevention if playing a solo seed
-            if self.multiworld.players == 1 and self.options.shop_behaviour.value > 0 and self.options.wavesanity_locations.value < 100 and (self.options.zombie_randomisation.value or self.options.shop_items.value < 8 or self.options.plant_stat_randomisation.value or self.options.individual_tile_unlock_items.value or self.options.progressive_sun_capacity_items.value):
-                #Puts shop access in sphere 1
-                self.preplaced_progression.append(self.get_shop_unlock_item_name())
-                self.progression_item_names.remove(self.get_shop_unlock_item_name())
-
-                if len(self.starting_levels) >= 1:
-                    self.multiworld.get_location(f"{self.included_levels[self.random.choice(self.starting_levels)].name} (Clear)", self.player).place_locked_item(self.create_item(self.get_shop_unlock_item_name()))
-                else:
-                    self.multiworld.get_location(f"Day: Level 1-1 (Clear)", self.player).place_locked_item(self.create_item(self.get_shop_unlock_item_name()))
-
-                if self.options.starting_seed_slots.value == 1: #Adds an Extra Seed Slot to page 1 of the shop
-                    self.preplaced_progression.append("Extra Seed Slot")
-                    shop_item_number = 1
-                    if self.options.shop_items.value > 1:
-                        shop_item_number = self.random.randint(1, min(8, self.options.shop_items.value))
-                    self.multiworld.get_location(f"Crazy Dave's Twiddydinkies: Item #{shop_item_number}", self.player).place_locked_item(self.create_item("Extra Seed Slot"))
-
             #Locked items
             self.multiworld.get_location("Roof: Dr. Zomboss (Clear)", self.player).place_locked_item(self.create_item("Music Video")) 
 
@@ -225,6 +242,7 @@ class PVZRWorld(World):
                 self.options.cloudy_day_levels_goal.value = 0
                 self.options.bonus_levels_goal.value = 0
                 self.options.costume_chances.value = {}
+            self.requires_replanted = (self.options.cloudy_day_levels.value or self.options.randomised_zombies.value["TrashCan"] or self.options.zombie_randomised_modes.value["Survival"] or self.options.bonus_levels.value or self.options.china_level.value)
 
             #Setup level unlock order randomisation
             self.minigame_unlocks = { 51: 0, 52: 0, 53: 0, 54: 1, 55: 2, 56: 3, 57: 4, 58: 5, 59: 6, 60: 7, 61: 8, 62: 9, 63: 10, 64: 11, 65: 12, 66: 13, 67: 14, 68: 15, 69: 16, 70: 17}
@@ -460,6 +478,9 @@ class PVZRWorld(World):
         self.options.shop_items.value = 96
         self.options.progressive_sun_capacity_items.value = bool(slot_data["progressive_sun_capacity_items"])
         self.options.individual_tile_unlock_items.value = bool(slot_data["individual_tile_unlock_items"])
+        self.options.lock_conveyor_plants.value = bool(slot_data["lock_conveyor_plants"])
+        self.options.lock_vasebreaker_plants.value = bool(slot_data["lock_vasebreaker_plants"])
+        self.options.lock_izombie_zombies.value = bool(slot_data["lock_izombie_zombies"])
 
         #UT Defaults
         self.included_levels = create_levels(self)
@@ -619,7 +640,7 @@ class PVZRWorld(World):
                 plant_data = self.all_plants[plant_name]
                 self.sun_prices[plant_data.plant_id] = plant_data.cost
 
-        return {"music_map": self.music_map, "starting_inv_count": len(self.starting_items), "adventure_mode_progression": self.options.adventure_mode_progression.value, "shop_prices": self.shop_prices, "minigame_unlocks": self.minigame_unlocks, "survival_unlocks": self.survival_unlocks, "izombie_unlocks": self.izombie_unlocks, "vasebreaker_unlocks": self.vasebreaker_unlocks, "gen_version": GEN_VERSION, "imitater_open": self.options.imitater_behaviour.value == 1, "disable_storm_flashes": self.options.disable_storm_flashes.value, "adventure_areas_goal": self.adventure_areas_goal, "minigame_levels_goal": self.minigame_levels_goal, "puzzle_levels_goal": self.puzzle_levels_goal, "survival_levels_goal": self.survival_levels_goal, "deathlink_enabled": self.options.death_link.value, "fast_goal": self.fast_goal, "adventure_levels_goal": self.adventure_levels_goal, "easy_upgrade_plants": self.options.easy_upgrade_plants.value, "cloudy_day_levels_goal": self.cloudy_day_levels_goal, "bonus_levels_goal": self.bonus_levels_goal, "overall_levels_goal": self.overall_levels_goal, "cloudy_day_unlocks": self.cloudy_day_unlocks, "zombie_map": self.zombie_map, "minigame_levels": self.options.minigame_levels.value, "puzzle_levels": self.options.puzzle_levels.value, "survival_levels": self.options.survival_levels.value, "bonus_levels": self.options.bonus_levels.value, "cloudy_day_levels": self.options.cloudy_day_levels.value, "sun_prices": self.sun_prices, "recharge_times": self.recharge_times, "firing_rates": self.firing_rates, "projectile_damages": self.projectile_damages, "plant_healths": self.plant_healths, "conveyor_map": self.conveyor_map, "sun_per_upgrade": self.sun_per_upgrade, "energylink_enabled": self.options.energy_link.value, "taco_goal": self.taco_goal, "china_level": self.options.china_level.value, "zombie_weight_map": self.zombie_weight_map, "zombie_weight_randomisation": self.options.zombie_weight_randomisation.value, "ringlink_enabled": self.options.ring_link.value, "progressive_sun_capacity_items": self.options.progressive_sun_capacity_items.value, "individual_tile_unlock_items": self.options.individual_tile_unlock_items.value, "wavesanity_map": self.wavesanity_map, "costume_chances": self.options.costume_chances.value}
+        return {"music_map": self.music_map, "starting_inv_count": len(self.starting_items), "adventure_mode_progression": self.options.adventure_mode_progression.value, "shop_prices": self.shop_prices, "minigame_unlocks": self.minigame_unlocks, "survival_unlocks": self.survival_unlocks, "izombie_unlocks": self.izombie_unlocks, "vasebreaker_unlocks": self.vasebreaker_unlocks, "gen_version": GEN_VERSION, "imitater_open": self.options.imitater_behaviour.value == 1, "disable_storm_flashes": self.options.disable_storm_flashes.value, "adventure_areas_goal": self.adventure_areas_goal, "minigame_levels_goal": self.minigame_levels_goal, "puzzle_levels_goal": self.puzzle_levels_goal, "survival_levels_goal": self.survival_levels_goal, "deathlink_enabled": self.options.death_link.value, "fast_goal": self.fast_goal, "adventure_levels_goal": self.adventure_levels_goal, "easy_upgrade_plants": self.options.easy_upgrade_plants.value, "cloudy_day_levels_goal": self.cloudy_day_levels_goal, "bonus_levels_goal": self.bonus_levels_goal, "overall_levels_goal": self.overall_levels_goal, "cloudy_day_unlocks": self.cloudy_day_unlocks, "zombie_map": self.zombie_map, "minigame_levels": self.options.minigame_levels.value, "puzzle_levels": self.options.puzzle_levels.value, "survival_levels": self.options.survival_levels.value, "bonus_levels": self.options.bonus_levels.value, "cloudy_day_levels": self.options.cloudy_day_levels.value, "sun_prices": self.sun_prices, "recharge_times": self.recharge_times, "firing_rates": self.firing_rates, "projectile_damages": self.projectile_damages, "plant_healths": self.plant_healths, "conveyor_map": self.conveyor_map, "sun_per_upgrade": self.sun_per_upgrade, "energylink_enabled": self.options.energy_link.value, "taco_goal": self.taco_goal, "china_level": self.options.china_level.value, "zombie_weight_map": self.zombie_weight_map, "zombie_weight_randomisation": self.options.zombie_weight_randomisation.value, "ringlink_enabled": self.options.ring_link.value, "progressive_sun_capacity_items": self.options.progressive_sun_capacity_items.value, "individual_tile_unlock_items": self.options.individual_tile_unlock_items.value, "wavesanity_map": self.wavesanity_map, "costume_chances": self.options.costume_chances.value, "seedlink_enabled": self.options.seed_link.value, "lawnlink_enabled": self.options.lawn_link.value, "lawnlink_chances": self.options.lawn_link_chances.value, "lock_vasebreaker_plants": self.options.lock_vasebreaker_plants.value, "lock_conveyor_plants": self.options.lock_conveyor_plants.value, "lock_izombie_zombies": self.options.lock_izombie_zombies.value, "requires_replanted": self.requires_replanted}
 
     @staticmethod
     def interpret_slot_data(slot_data: dict[str, object]) -> dict[str, object]:

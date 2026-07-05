@@ -128,14 +128,12 @@ class Plant:
             else: #Buff
                 firing_cooldown_multiplier = base_number - (weighted_roll(world, maximum_firing_cooldown_mult_loss * 100, 2) / 100)
 
+            firing_cooldown_multiplier = max(0.3, firing_cooldown_multiplier)
+
             self.firing_cooldown = round(self.unmodified.firing_cooldown * firing_cooldown_multiplier)
 
             if world.options.easy_upgrade_plants.value == False and self.upgrades_from in world.all_plants and self.projectiles == world.all_plants[self.upgrades_from].projectiles: #Stop firing cooldown from downgrading
                 self.firing_cooldown = min(round(world.all_plants[self.upgrades_from].firing_cooldown * 1.2), self.firing_cooldown)
-
-            firing_cooldown_multiplier = max(0.3, firing_cooldown_multiplier)
-            if self.projectiles_per_shot > 2: #Can't shoot too fast
-                firing_cooldown_multiplier = max(0.45, firing_cooldown_multiplier) #Won't drop below 0.45
 
         #Randomise Toughness
         if not self.invincible:
