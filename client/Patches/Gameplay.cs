@@ -392,96 +392,7 @@ namespace ReplantedArchipelago.Patches
                     {
                         foreach (LawnLink queuedLawnLink in queuedLawnLinks)
                         {
-                            if (queuedLawnLink.Conveyor == __instance.m_board.HasConveyorBeltSeedBank())
-                            {
-                                if (queuedLawnLink.Action == 0) //Planting
-                                {
-                                    if (__instance.m_board.CanPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed) == PlantingReason.Ok)
-                                    {
-                                        if (APClient.lawnLinkChances.ContainsKey("add_plant") && Data.random.Next(100) < (int)APClient.lawnLinkChances["add_plant"])
-                                        {
-                                            __instance.m_board.AddPlant(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed, queuedLawnLink.Seed);
-                                            DisplayLinkMessage($"{Plant.GetNameString(__instance, queuedLawnLink.Seed, queuedLawnLink.Seed)} planted by {APClient.apSession.Players.GetPlayerName(queuedLawnLink.Source)}", new UnityEngine.Color(1f, 1f, 0.3f), __instance);
-                                        }
-                                    }
-                                    else if (__instance.m_board.GetTopPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, PlantPriority.DiggingOrder) != null && __instance.m_board.CanPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed) == PlantingReason.NotHere) //Can't plant because there's already something there
-                                    {
-                                        if (APClient.lawnLinkChances.ContainsKey("overwrite_plant") && Data.random.Next(100) < (int)APClient.lawnLinkChances["overwrite_plant"] && queuedLawnLink.Seed != SeedType.Gravebuster && queuedLawnLink.Seed != SeedType.InstantCoffee && (!(APClient.easyUpgradePlants == false && Data.upgradePlants.Contains(queuedLawnLink.Seed))))
-                                        {
-                                            if (queuedLawnLink.Seed == SeedType.Pumpkinshell)
-                                            {
-                                            }
-                                            if ((queuedLawnLink.Row == 2 || queuedLawnLink.Row == 3) && (__instance.m_board.mBackground == BackgroundType.Pool || __instance.m_board.mBackground == BackgroundType.Fog)) //Water lanes
-                                            {
-                                                if (Data.aquaticPlants.Contains(queuedLawnLink.Seed)) //This is an aquatic plant, so it must be an empty tile in order to use it
-                                                {
-                                                    SeedType overwrittenPlant = SeedType.None;
-                                                    while (true) //Loop until broken
-                                                    {
-                                                        Plant topPlant = __instance.m_board.GetTopPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, PlantPriority.DiggingOrder); //Get top plant
-                                                        if (topPlant == null) //If there is no plant there anymore, break the loop
-                                                        {
-                                                            break;
-                                                        }
-                                                        else //If there is still a plant there, we need to get rid of it
-                                                        {
-                                                            overwrittenPlant = topPlant.mSeedType;
-                                                            topPlant.Die();
-                                                        }
-                                                    }
-                                                    if (__instance.m_board.CanPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed) == PlantingReason.Ok)
-                                                    {
-                                                        __instance.m_board.AddPlant(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed, queuedLawnLink.Seed); //Add your plant
-                                                    }
-                                                    DisplayLinkMessage($"{APClient.apSession.Players.GetPlayerName(queuedLawnLink.Source)} replaced your {Plant.GetNameString(__instance, overwrittenPlant, overwrittenPlant)} with {Plant.GetNameString(__instance, queuedLawnLink.Seed, queuedLawnLink.Seed)}", new UnityEngine.Color(1f, 0.5f, 0.5f), __instance);
-                                                }
-                                                else //We can't plant there, we've got a non-aquatic plant - so there must be either an aquatic plant already there, or there's just a plant on a Lily Pad
-                                                {
-                                                    Plant topPlant = __instance.m_board.GetTopPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, PlantPriority.DiggingOrder); //Get top plant
-                                                    if (!Data.aquaticPlants.Contains(topPlant.mSeedType)) //If it's an aquatic plant, just give up as you'd have to spawn in a Lily Pad as well which is cheating >:(
-                                                    {
-                                                        SeedType overwrittenPlant = topPlant.mSeedType;
-                                                        topPlant.Die(); //Remove plant on the flower pot
-                                                        if (__instance.m_board.CanPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed) == PlantingReason.Ok)
-                                                        {
-                                                            __instance.m_board.AddPlant(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed, queuedLawnLink.Seed); //Add your plant
-                                                        }
-                                                        DisplayLinkMessage($"{APClient.apSession.Players.GetPlayerName(queuedLawnLink.Source)} replaced your {Plant.GetNameString(__instance, overwrittenPlant, overwrittenPlant)} with {Plant.GetNameString(__instance, queuedLawnLink.Seed, queuedLawnLink.Seed)}", new UnityEngine.Color(1f, 0.5f, 0.5f), __instance);
-                                                    }
-                                                }
-                                            }
-                                            else if (!Data.aquaticPlants.Contains(queuedLawnLink.Seed) && !(queuedLawnLink.Seed == SeedType.Flowerpot && __instance.m_board.GetFlowerPotAt(queuedLawnLink.Column, queuedLawnLink.Row) != null)) //Planting a non-aquatic plant
-                                            {
-                                                SeedType overwrittenPlant = SeedType.None;
-                                                while (true) //Loop until broken
-                                                {
-                                                    Plant topPlant = __instance.m_board.GetTopPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, PlantPriority.DiggingOrder); //Get top plant
-                                                    if (topPlant == null) //If there is no plant there anymore, break the loop
-                                                    {
-                                                        break;
-                                                    }
-                                                    else //If there is still a plant there, we need to get rid of it
-                                                    {
-                                                        overwrittenPlant = topPlant.mSeedType;
-                                                        topPlant.Die();
-                                                    }
-                                                }
-                                                __instance.m_board.AddPlant(queuedLawnLink.Column, queuedLawnLink.Row, queuedLawnLink.Seed, queuedLawnLink.Seed); //Add your plant
-                                                DisplayLinkMessage($"{APClient.apSession.Players.GetPlayerName(queuedLawnLink.Source)} replaced your {Plant.GetNameString(__instance, overwrittenPlant, overwrittenPlant)} with {Plant.GetNameString(__instance, queuedLawnLink.Seed, queuedLawnLink.Seed)}", new UnityEngine.Color(1f, 0.5f, 0.5f), __instance);
-                                            }
-                                        }
-                                    }
-                                }
-                                else if (queuedLawnLink.Action == 1 && APClient.lawnLinkChances.ContainsKey("remove_plant") && Data.random.Next(100) < (int)APClient.lawnLinkChances["remove_plant"]) //Digging
-                                {
-                                    Plant plant = __instance.m_board.GetTopPlantAt(queuedLawnLink.Column, queuedLawnLink.Row, PlantPriority.EatingOrder);
-                                    if (plant != null)
-                                    {
-                                        plant.Die();
-                                        DisplayLinkMessage($"{APClient.apSession.Players.GetPlayerName(queuedLawnLink.Source)} removed your {Plant.GetNameString(__instance, plant.mSeedType, plant.mImitaterType)}", new UnityEngine.Color(1f, 0.5f, 0.5f), __instance);
-                                    }
-                                }
-                            }
+                            ReceivedLawnLink(queuedLawnLink, __instance, __instance.m_board);
                         }
                     }
                     queuedLawnLinks.Clear();
@@ -2363,6 +2274,117 @@ namespace ReplantedArchipelago.Patches
                     return false;
                 }
                 return true;
+            }
+        }
+
+        public static void ReceivedLawnLink(LawnLink receivedLawnLink, GameplayActivity app, Board board)
+        {
+            if (receivedLawnLink.Conveyor == board.HasConveyorBeltSeedBank())
+            {
+                if (receivedLawnLink.Action == 0) //Planting
+                {
+                    if (board.CanPlantAt(receivedLawnLink.Column, receivedLawnLink.Row, receivedLawnLink.Seed) == PlantingReason.Ok) //Add plant
+                    {
+                        if (APClient.lawnLinkChances.ContainsKey("add_plant") && Data.random.Next(100) < (int)APClient.lawnLinkChances["add_plant"])
+                        {
+                            board.AddPlant(receivedLawnLink.Column, receivedLawnLink.Row, receivedLawnLink.Seed, receivedLawnLink.Seed);
+                            DisplayLinkMessage($"{Plant.GetNameString(app, receivedLawnLink.Seed, receivedLawnLink.Seed)} planted by {APClient.apSession.Players.GetPlayerName(receivedLawnLink.Source)}", new UnityEngine.Color(1f, 1f, 0.3f), app);
+                        }
+                    }
+                    else if (board.GetTopPlantAt(receivedLawnLink.Column, receivedLawnLink.Row, PlantPriority.DiggingOrder) != null && board.CanPlantAt(receivedLawnLink.Column, receivedLawnLink.Row, receivedLawnLink.Seed) == PlantingReason.NotHere) //Can't plant because there's already something there - so overwrite
+                    {
+                        if (APClient.lawnLinkChances.ContainsKey("overwrite_plant") && Data.random.Next(100) < (int)APClient.lawnLinkChances["overwrite_plant"])
+                        {
+                            if (((receivedLawnLink.Seed == SeedType.Spikeweed || receivedLawnLink.Seed == SeedType.Spikerock) && (board.mBackground == BackgroundType.Roof || board.mBackground == BackgroundType.Boss)) || //No Spikeweed on the roof
+                                (receivedLawnLink.Seed == SeedType.Gravebuster) ||
+                                (receivedLawnLink.Seed == SeedType.InstantCoffee) ||
+                                (receivedLawnLink.Seed == SeedType.Pumpkinshell) ||
+                                (APClient.easyUpgradePlants == false && Data.upgradePlants.Contains(receivedLawnLink.Seed)))
+                            {
+                                return;
+                            }
+
+                            if ((receivedLawnLink.Row == 2 || receivedLawnLink.Row == 3) && (board.mBackground == BackgroundType.Pool || board.mBackground == BackgroundType.Fog)) //Water lanes
+                            {
+                                if (Data.aquaticPlants.Contains(receivedLawnLink.Seed)) //This is an aquatic plant, so it must be an empty tile in order to use it
+                                {
+                                    SeedType overwrittenPlant = SeedType.None;
+                                    while (true) //Loop until broken
+                                    {
+                                        Plant topPlant = board.GetTopPlantAt(receivedLawnLink.Column, receivedLawnLink.Row, PlantPriority.DiggingOrder); //Get top plant
+                                        if (receivedLawnLink.Seed == SeedType.Lilypad && !Data.aquaticPlants.Contains(topPlant.mSeedType)) //Lawnlink receiving a Lily Pad onto a tile with a Lily Pad already, just do nothing
+                                        {
+                                            return;
+                                        }
+                                        if (topPlant == null) //If there is no plant there anymore, break the loop
+                                        {
+                                            break;
+                                        }
+                                        else //If there is still a plant there, we need to get rid of it
+                                        {
+                                            overwrittenPlant = topPlant.mSeedType;
+                                            topPlant.Die();
+                                        }
+                                    }
+                                    if (board.CanPlantAt(receivedLawnLink.Column, receivedLawnLink.Row, receivedLawnLink.Seed) == PlantingReason.Ok)
+                                    {
+                                        board.AddPlant(receivedLawnLink.Column, receivedLawnLink.Row, receivedLawnLink.Seed, receivedLawnLink.Seed); //Add your plant
+                                    }
+                                    DisplayLinkMessage($"{APClient.apSession.Players.GetPlayerName(receivedLawnLink.Source)} replaced your {Plant.GetNameString(app, overwrittenPlant, overwrittenPlant)} with {Plant.GetNameString(app, receivedLawnLink.Seed, receivedLawnLink.Seed)}", new UnityEngine.Color(1f, 0.5f, 0.5f), app);
+                                }
+                                else //We can't plant there, we've got a non-aquatic plant - so there must be either an aquatic plant already there, or there's just a plant on a Lily Pad OR it's an impossible lily pad plant
+                                {
+                                    if (receivedLawnLink.Seed == SeedType.Potatomine || receivedLawnLink.Seed == SeedType.Spikerock || receivedLawnLink.Seed == SeedType.Spikeweed || receivedLawnLink.Seed == SeedType.Flowerpot) //Impossible lily pad plants
+                                    {
+                                        return;
+                                    }
+                                    Plant topPlant = board.GetTopPlantAt(receivedLawnLink.Column, receivedLawnLink.Row, PlantPriority.DiggingOrder); //Get top plant
+                                    if (!Data.aquaticPlants.Contains(topPlant.mSeedType)) //If it's an aquatic plant, just give up as you'd have to spawn in a Lily Pad as well which is cheating >:(
+                                    {
+                                        SeedType overwrittenPlant = topPlant.mSeedType;
+                                        topPlant.Die(); //Remove plant on the Lily Pad
+                                        if (board.CanPlantAt(receivedLawnLink.Column, receivedLawnLink.Row, receivedLawnLink.Seed) == PlantingReason.Ok)
+                                        {
+                                            board.AddPlant(receivedLawnLink.Column, receivedLawnLink.Row, receivedLawnLink.Seed, receivedLawnLink.Seed); //Add your plant
+                                        }
+                                        DisplayLinkMessage($"{APClient.apSession.Players.GetPlayerName(receivedLawnLink.Source)} replaced your {Plant.GetNameString(app, overwrittenPlant, overwrittenPlant)} with {Plant.GetNameString(app, receivedLawnLink.Seed, receivedLawnLink.Seed)}", new UnityEngine.Color(1f, 0.5f, 0.5f), app);
+                                    }
+                                }
+                            }
+                            else if (!Data.aquaticPlants.Contains(receivedLawnLink.Seed) && !(receivedLawnLink.Seed == SeedType.Flowerpot && board.GetFlowerPotAt(receivedLawnLink.Column, receivedLawnLink.Row) != null)) //Planting a non-aquatic plant
+                            {
+                                SeedType overwrittenPlant = SeedType.None;
+                                while (true) //Loop until broken
+                                {
+                                    Plant topPlant = board.GetTopPlantAt(receivedLawnLink.Column, receivedLawnLink.Row, PlantPriority.DiggingOrder); //Get top plant
+                                    if (board.CanPlantAt(receivedLawnLink.Column, receivedLawnLink.Row, receivedLawnLink.Seed) == PlantingReason.Ok || topPlant == null) //If you can now plant there, plant it - otherwise keep on deleting!
+                                    {
+                                        break;
+                                    }
+                                    else //If there is still a plant there, we need to get rid of it
+                                    {
+                                        overwrittenPlant = topPlant.mSeedType;
+                                        topPlant.Die();
+                                    }
+                                }
+                                if (board.CanPlantAt(receivedLawnLink.Column, receivedLawnLink.Row, receivedLawnLink.Seed) == PlantingReason.Ok)
+                                {
+                                    board.AddPlant(receivedLawnLink.Column, receivedLawnLink.Row, receivedLawnLink.Seed, receivedLawnLink.Seed); //Add your plant
+                                }
+                                DisplayLinkMessage($"{APClient.apSession.Players.GetPlayerName(receivedLawnLink.Source)} replaced your {Plant.GetNameString(app, overwrittenPlant, overwrittenPlant)} with {Plant.GetNameString(app, receivedLawnLink.Seed, receivedLawnLink.Seed)}", new UnityEngine.Color(1f, 0.5f, 0.5f), app);
+                            }
+                        }
+                    }
+                }
+                else if (receivedLawnLink.Action == 1 && APClient.lawnLinkChances.ContainsKey("remove_plant") && Data.random.Next(100) < (int)APClient.lawnLinkChances["remove_plant"]) //Digging
+                {
+                    Plant plant = board.GetTopPlantAt(receivedLawnLink.Column, receivedLawnLink.Row, PlantPriority.EatingOrder);
+                    if (plant != null)
+                    {
+                        plant.Die();
+                        DisplayLinkMessage($"{APClient.apSession.Players.GetPlayerName(receivedLawnLink.Source)} removed your {Plant.GetNameString(app, plant.mSeedType, plant.mImitaterType)}", new UnityEngine.Color(1f, 0.5f, 0.5f), app);
+                    }
+                }
             }
         }
     }
