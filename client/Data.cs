@@ -891,7 +891,7 @@ namespace ReplantedArchipelago
             { 101, new int[] { 0, 4 } },
         };
 
-        public static int[] ignoreLockedTileLevelIds = { 5, 15, 35, 52, 53, 55, 57, 58, 59, 65, 68, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 99, 103 };
+        public static int[] ignoreLockedTileLevelIds = { -1, 5, 15, 35, 52, 53, 55, 57, 58, 59, 65, 68, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 99, 103 };
 
         //Base costs for store items
         public static Dictionary<ItemFlags, int> BaseCosts = new Dictionary<ItemFlags, int>
@@ -1053,7 +1053,7 @@ namespace ReplantedArchipelago
                 }
 
                 //Sun producers - not on conveyor levels
-                if (board.HasConveyorBeltSeedBank() == false && board.mApp.GameMode != GameMode.ChallengeLastStand)
+                if (board.HasConveyorBeltSeedBank() == false && board.mApp.GameMode != GameMode.ChallengeRainingSeeds && board.mApp.GameMode != GameMode.ChallengeLastStand)
                 {
                     freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Sunflower }).ToList();
                     if (APClient.easyUpgradePlants)
@@ -1107,17 +1107,17 @@ namespace ReplantedArchipelago
                 }
 
                 //No Roof
-                if (isTrap || board.mBackground != BackgroundType.Roof)
+                if (isTrap || (board.mBackground != BackgroundType.Roof && board.mBackground != BackgroundType.Boss))
                 {
-                    freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Peashooter, SeedType.Snowpea, SeedType.Repeater, SeedType.Threepeater, SeedType.Torchwood, SeedType.Spikeweed, SeedType.Cactus, SeedType.Splitpea, SeedType.Starfruit }).ToList();
+                    freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Peashooter, SeedType.Snowpea, SeedType.Repeater, SeedType.Threepeater, SeedType.Torchwood, SeedType.Cactus, SeedType.Splitpea, SeedType.Starfruit }).ToList();
                     if (APClient.easyUpgradePlants || isTrap)
                     {
                         freeSeedTypes = freeSeedTypes.Concat(new List<SeedType> { SeedType.Gatlingpea, SeedType.Spikerock }).ToList();
                     }
                 }
 
-                //Yes Roof
-                if (board.mBackground == BackgroundType.Roof)
+                //Flower Pot
+                if (board.mBackground == BackgroundType.Roof || board.mBackground == BackgroundType.Boss && !isTrap)
                 {
                     freeSeedTypes.Add(SeedType.Flowerpot);
                 }

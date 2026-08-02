@@ -146,6 +146,16 @@ namespace ReplantedArchipelago.Patches
                         DisplayLinkMessage("Displaying Link Message", new UnityEngine.Color(1f, 1f, 1f), __instance);
                     }
 
+                    //Delete top left plant - F4
+                    if (Input.GetKeyDown(KeyCode.F4))
+                    {
+                        Plant plant = board.GetTopPlantAt(0, 0, PlantPriority.EatingOrder);
+                        if (plant != null)
+                        {
+                            plant.Die();
+                        }
+                    }
+
                     //Refresh all packets - F5
                     if (Input.GetKeyDown(KeyCode.F5))
                     {
@@ -433,6 +443,7 @@ namespace ReplantedArchipelago.Patches
                 {
                     foreach (int itemId in APClient.queuedUpItemEffects)
                     {
+                        Main.Log($"Processing Item Effect: #{itemId}");
                         if (itemId == 64) //Random seed packet
                         {
                             if (__instance.GameMode != GameMode.ChallengeBeghouled && __instance.GameMode != GameMode.ChallengeBeghouledTwist && !__instance.IsWallnutBowlingLevel())

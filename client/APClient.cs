@@ -396,7 +396,7 @@ namespace ReplantedArchipelago
 
         public static void ProcessItemInfo(ItemInfo item)
         {
-            Main.Log($"Item #{item.ItemId}");
+            Main.Log($"Processing Item: #{item.ItemId} (Received {receivedItems.Count}) (Displayed {displayedIngameMessages})");
             if (displayedIngameMessages <= receivedItems.Count)
             {
                 if (!item.Player.Name.Equals(slot))
@@ -427,6 +427,7 @@ namespace ReplantedArchipelago
 
                 if (Data.gameEffectItems.Contains(item.ItemId))
                 {
+                    Main.Log($"Queued Up Effect: #{item.ItemId}");
                     queuedUpItemEffects.Add(item.ItemId);
                 }
 
@@ -597,7 +598,11 @@ namespace ReplantedArchipelago
 
         public static bool HasSeedType(SeedType theSeedType)
         {
-            if (currentlyConnected && receivedItems != null)
+            if (Main.cachedGameplayActivity != null && Main.cachedGameplayActivity.GameMode == GameMode.ChallengeRainingSeeds)
+            {
+                return true;
+            }
+            else if (currentlyConnected && receivedItems != null)
             {
                 if (Data.unusualSeedTypes.ContainsKey(theSeedType))
                 {
@@ -607,10 +612,6 @@ namespace ReplantedArchipelago
                 {
                     return receivedItems.Contains(100 + Array.IndexOf(Data.seedTypes, theSeedType));
                 }
-            }
-            else if (Main.cachedGameplayActivity != null && Main.cachedGameplayActivity.GameMode == GameMode.ChallengeRainingSeeds)
-            {
-                return true;
             }
 
             return false;
