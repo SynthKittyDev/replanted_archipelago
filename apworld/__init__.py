@@ -571,6 +571,15 @@ class PVZRWorld(World):
             for plant in self.wall_plants:
                 self.progression_plants.update(plant)
 
+        #UT Conveyor rando - needed for conveyor lock logic
+        self.conveyor_map = slot_data["conveyor_map"]
+        if self.conveyor_map != {}:
+            for level in self.included_levels:
+                conveyor_key = str(self.included_levels[level].level_id)
+                if conveyor_key in self.conveyor_map and "core" in self.conveyor_map[conveyor_key]:
+                    self.included_levels[level].core_conveyor_plants = self.conveyor_map[conveyor_key]["core"]
+                    print(level, self.included_levels[level].core_conveyor_plants)
+
     def generate_basic(self) -> None:
         #Music randomisation
         self.music_map = []
@@ -597,13 +606,14 @@ class PVZRWorld(World):
             if level_data.zombies != [] and self.options.zombie_randomisation.value and self.options.zombie_randomised_modes.value[level_data.type]: #Zombie Rando
                 self.zombie_map[level_data.level_id] = [self.all_zombies[zombie_name].zombie_id for zombie_name in level_data.zombies]
             if self.options.conveyor_randomisation.value and level_data.conveyor: #Conveyor Rando
-                level_conveyor_map = {"weights": {}, "default": []} 
+                level_conveyor_map = {"weights": {}, "default": [], "core": []} 
                 for plant_name in level_data.conveyor:
                     plant_data = self.all_plants[plant_name]
                     level_conveyor_map["weights"][plant_data.plant_id] = level_data.conveyor[plant_name]
                 default_seeds = []
                 if level_data.conveyor_default > 0:
                     level_conveyor_map["default"] = list(level_conveyor_map["weights"].keys())[:level_data.conveyor_default]
+                level_conveyor_map["core"] = level_data.core_conveyor_plants
                 self.conveyor_map[level_data.level_id] = level_conveyor_map
             if level_data.zombies != [] and self.options.zombie_weight_randomisation.value == 2:
                 zombie_weight_map = {}

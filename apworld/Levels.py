@@ -63,7 +63,7 @@ class Level:
         if self.special == "bowling":
             level_banned_zombies += ["Bungee", "Balloon"]
         elif self.name == "Mini-games: Column Like You See 'Em":
-            level_banned_zombies += ["Balloon"]
+            level_banned_zombies += ["Balloon", "Bungee", "GigaGargantuar", "GatlingHead", "JalapenoHead", "SquashHead"]
         elif self.name == "Roof: Level 5-5":
             level_banned_zombies += ["Digger", "Balloon", "Pogo", "Zomboni"]
         elif self.name in ["Mini-games: Bobsled Bonanza", "Mini-games: Pogo Party", "Bonus Levels: Air Raid"]:
@@ -125,6 +125,8 @@ class Level:
         for plant in plants_to_use:
             if not plant in conveyor_weights: #Plants that haven't already had their weights decided
                 conveyor_weights[plant] = world.random.randint(5, 10) #Set any remaining plants to a random weight, capped lower than your main attacker
+            if plant in ["Melon-pult", "Winter Melon", "Jalapeno"] and self.name == "Mini-games: Column Like You See 'Em":
+                conveyor_weights[plant] = world.random.randint(17, 25)
 
         if self.has_pool:
             conveyor_weights["Lily Pad"] = world.random.randint(28, 32)
@@ -177,7 +179,7 @@ class Level:
         self.conveyor = conveyor_weights
 
     def requires_a_wall_plant(self):
-        return self.type == "Survival" or self.name in ["Roof: Level 5-5", "Mini-games: Column Like You See 'Em"] or any(zombie in self.zombies for zombie in ["PeaHead", "GatlingHead", "TallnutHead"])
+        return self.type == "Survival" or self.name in ["Roof: Level 5-5", "Mini-games: Column Like You See 'Em", "Bonus Levels: High Gravity"] or any(zombie in self.zombies for zombie in ["PeaHead", "GatlingHead", "TallnutHead"])
 
     def can_clear(self, state, world, player):
         #Non-negotiables
@@ -303,9 +305,11 @@ class Level:
 
         #Bowling locks
         elif self.special == "bowling" and world.options.lock_conveyor_plants.value:
-            if not (state.has("Wall-nut", player)):
+            if not (state.has("Wall-nut", player) and state.has("Explode-o-nut (Wall-nut Bowling)", player)):
                 return False
-
+            if self.name == "Mini-games: Wall-nut Bowling 2" and not state.has("Giant Wall-nut (Wall-nut Bowling)", player):
+                return False
+                
         return True
 
     def create_plant_combinations(self, world):
@@ -458,6 +462,7 @@ class Level:
         #Bungee
         if self.name in ["Mini-games: Bobsled Bonanza", "Mini-games: Pogo Party", "Bonus Levels: Air Raid"] and "Bungee" in self.zombies:
             possible_combinations["bungee_bonanza"] = [{"Umbrella Leaf"}]
+            
         #Grave Buster
         if self.name == "Bonus Levels: Grave Danger" or (self.type == "Survival" and self.at_night and not self.has_pool):
             possible_combinations["grave"] = [{"Grave Buster"}]
@@ -465,6 +470,12 @@ class Level:
         #Column Like You See 'Em hard requirements
         if self.name in ["Mini-games: Column Like You See 'Em"]:
             possible_combinations["column"] = [{"Jalapeno", "Pumpkin"}]
+
+        #High Gravity
+        if self.name in ["Bonus Levels: High Gravity"]:
+            possible_combinations["gravity"] = [{"Fume-shroom", "Coffee Bean"}, {"Chomper"}]
+            if world.options.easy_upgrade_plants.value:
+                possible_combinations["gravity"].append({"Gloom-shroom", "Coffee Bean"})
 
         #Spikeweed
         if self.name in ["Mini-games: Bobsled Bonanza", "Mini-games: Pogo Party", "Bonus Levels: Air Raid"] and "Zomboni" in self.zombies:
