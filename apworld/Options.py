@@ -155,6 +155,43 @@ class PlantStatRandomisationBlacklist(OptionSet):
     display_name = "Plant Stat Randomisation Blacklist"
     valid_keys = ["Peashooter", "Sunflower", "Cherry Bomb", "Wall-nut", "Potato Mine", "Snow Pea", "Chomper", "Repeater", "Puff-shroom", "Sun-shroom", "Fume-shroom", "Grave Buster", "Hypno-shroom", "Scaredy-shroom", "Ice-shroom", "Doom-shroom", "Lily Pad", "Squash", "Threepeater", "Tangle Kelp", "Jalapeno", "Spikeweed", "Torchwood", "Tall-nut", "Sea-shroom", "Plantern", "Cactus", "Blover", "Split Pea", "Starfruit", "Pumpkin", "Magnet-shroom", "Cabbage-pult", "Flower Pot", "Kernel-pult", "Coffee Bean", "Garlic", "Umbrella Leaf", "Marigold", "Melon-pult", "Gatling Pea", "Twin Sunflower", "Gloom-shroom", "Cattail", "Winter Melon", "Gold Magnet", "Spikerock", "Cob Cannon"]
 
+class PlantStatRandomisationRange(Toggle):
+    """
+    Limits plant stat randomisation to a global range around each stat's vanilla value.
+    If this option is enabled, every randomised stat (Sun Cost, Packet Refresh Time, Toughness, Firing Rate and Projectile Damage)
+    will be clamped between the percentages set by plant_stat_randomisation_maximum_decrease and plant_stat_randomisation_maximum_increase.
+    If this option is disabled, plant stat randomisation behaves as usual with its full default ranges.
+
+    This option only matters if plant_stat_randomisation is set to true.
+    If plant_stat_randomisation is set to false then no plant stat randomisation will happen.
+    """
+    display_name = "Plant Stat Randomisation Range"
+    default = False
+
+class PlantStatRandomisationMaximumDecrease(Range):
+    """
+    The maximum percentage that a randomised plant stat can decrease below its vanilla value.
+    For example, a value of 20 means no stat can drop below 80% of its vanilla value.
+
+    This option only matters if both plant_stat_randomisation and plant_stat_randomisation_range are set to true.
+    """
+    display_name = "Plant Stat Randomisation Maximum Decrease"
+    range_start = 0
+    range_end = 100
+    default = 20
+
+class PlantStatRandomisationMaximumIncrease(Range):
+    """
+    The maximum percentage that a randomised plant stat can increase above its vanilla value.
+    For example, a value of 50 means no stat can rise above 150% of its vanilla value.
+
+    This option only matters if both plant_stat_randomisation and plant_stat_randomisation_range are set to true.
+    """
+    display_name = "Plant Stat Randomisation Maximum Increase"
+    range_start = 0
+    range_end = 1000
+    default = 50
+
 class MinigameLevels(Choice):
     """
     Determines how Mini-game levels will be incorporated into the game.
@@ -868,6 +905,9 @@ class PVZROptions(PerGameCommonOptions):
     plant_stat_randomisation: PlantStatRandomisation
     maintain_vanilla_projectile_strength: MaintainVanillaProjectileStrength
     plant_stat_randomisation_blacklist: PlantStatRandomisationBlacklist
+    plant_stat_randomisation_range: PlantStatRandomisationRange
+    plant_stat_randomisation_maximum_decrease: PlantStatRandomisationMaximumDecrease
+    plant_stat_randomisation_maximum_increase: PlantStatRandomisationMaximumIncrease
     lock_conveyor_plants: LockConveyorPlants
     lock_vasebreaker_plants: LockVasebreakerPlants
     lock_izombie_zombies: LockIZombieZombies
@@ -907,7 +947,7 @@ OPTION_GROUPS = [
     OptionGroup("Level Access", [AdventureModeProgression, MinigameLevels, PuzzleLevels, SurvivalLevels, CloudyDayLevels, BonusLevels, ChinaLevel]),    
     OptionGroup("Extra Locations", [HugeWaveLocations, WavesanityLocations, ShopBehaviour, ShopItems]),
     OptionGroup("Goal", [AdventureLevelsGoal, AdventureAreasGoal, MinigameLevelsGoal, PuzzleLevelsGoal, SurvivalLevelsGoal, CloudyDayLevelsGoal, BonusLevelsGoal, TotalLevelsGoal, TacoHuntItems, TacoHuntPercentage, FastGoal]),
-    OptionGroup("Zombie & Plant Randomisation", [ConveyorRandomisation, ZombieRandomisation, RandomisedZombies, ZombieRandomisedModes, ZombieWeightRandomisation, PlantStatRandomisation, MaintainVanillaProjectileStrength, PlantStatRandomisationBlacklist]),
+    OptionGroup("Zombie & Plant Randomisation", [ConveyorRandomisation, ZombieRandomisation, RandomisedZombies, ZombieRandomisedModes, ZombieWeightRandomisation, PlantStatRandomisation, MaintainVanillaProjectileStrength, PlantStatRandomisationBlacklist, PlantStatRandomisationRange, PlantStatRandomisationMaximumDecrease, PlantStatRandomisationMaximumIncrease]),
     OptionGroup("Game Tweaks", [LockConveyorPlants, LockVasebreakerPlants, LockIZombieZombies, EasyUpgradePlants, ImitaterBehaviour, DisableStormFlashes, MusicShuffle, CostumeChances]),
     OptionGroup("Item Generation", [ZenGardenItems, StartingSunUpgrades, MaximumSunUpgrades, MowerRewardUpgrades, RandomSeedFiller, ZombieFreezeFiller, ZombieHypnosisFiller, SunBurstFiller, StartingPlants, StartingSeedSlots, EarlySunflower, EarlyShovel, EarlyZenGarden, ProgressiveSunCapacityItems, IndividualTileUnlockItems]),
     OptionGroup("Traps", [TrapPercentage, MowerDeployTrapWeight, SeedPacketCooldownTrapWeight, ZombieAmbushTrapWeight, ZombieShuffleTrapWeight, ZombieCaffeineTrapWeight, RVTrapWeight, CraterTrapWeight, LawnFlipTrapWeight, LawnRandomiserTrapWeight]),

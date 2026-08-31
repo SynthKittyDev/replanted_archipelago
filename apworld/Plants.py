@@ -9,6 +9,14 @@ def weighted_roll(world, max_value, power): #Rolls a number between 0 and a max 
 def round_to_five(number):
     return round(number / 5) * 5
 
+def apply_global_stat_range(world, value, unmodified_value): #Clamps a randomised stat to the global randomisation range, if enabled
+    if not world.options.plant_stat_randomisation_range.value:
+        return value
+
+    minimum = unmodified_value * (1 - world.options.plant_stat_randomisation_maximum_decrease.value / 100)
+    maximum = unmodified_value * (1 + world.options.plant_stat_randomisation_maximum_increase.value / 100)
+    return round(min(max(value, minimum), maximum))
+
 @dataclass
 class Plant:
     name: str
@@ -250,6 +258,15 @@ class Plant:
             self.packet_cooldown += exceeded_sun_cost * 10
         self.packet_cooldown = min(round(self.packet_cooldown), 50000)
 
+        #Apply the global randomisation range, if enabled
+        if world.options.plant_stat_randomisation_range.value:
+            if self.firing_cooldown != -1:
+                self.firing_cooldown = apply_global_stat_range(world, self.firing_cooldown, self.unmodified.firing_cooldown)
+            if not self.invincible:
+                self.health = apply_global_stat_range(world, self.health, self.unmodified.health)
+            self.cost = round_to_five(apply_global_stat_range(world, self.cost, self.unmodified.cost))
+            self.packet_cooldown = max(100, apply_global_stat_range(world, self.packet_cooldown, self.unmodified.packet_cooldown))
+
         if (maintain_plantability and not self.is_plantable()) or (ensure_usability and not self.is_usable(world)):
             self.randomise(world, ensure_usability, maintain_plantability)
 
@@ -277,7 +294,7 @@ class Projectile:
         else: #Nerf
             damage_mult = 1 - (weighted_roll(world, maximum_damage_mult_loss * 100, 2) / 100)
 
-        self.damage = round(self.unmodified.damage * damage_mult)
+        self.damage = apply_global_stat_range(world, round(self.unmodified.damage * damage_mult), self.unmodified.damage)
 
 def create_plants():
     return {
