@@ -9,6 +9,22 @@ def weighted_roll(world, max_value, power): #Rolls a number between 0 and a max 
 def round_to_five(number):
     return round(number / 5) * 5
 
+def get_stat_limit_multipliers(limits, stat_name): #Converts "<stat>_down"/"<stat>_up" percentage limits into (min_mult, max_mult) - None means unrestricted
+    min_mult = None
+    max_mult = None
+    if f"{stat_name}_down" in limits:
+        min_mult = max(0, 1 - (limits[f"{stat_name}_down"] / 100))
+    if f"{stat_name}_up" in limits:
+        max_mult = 1 + (limits[f"{stat_name}_up"] / 100)
+    return min_mult, max_mult
+
+def clamp_stat(value, unmodified_value, min_mult, max_mult): #Clamps a randomised stat so it stays within the configured range around its vanilla value
+    if min_mult is not None:
+        value = max(value, unmodified_value * min_mult)
+    if max_mult is not None:
+        value = min(value, unmodified_value * max_mult)
+    return value
+
 @dataclass
 class Plant:
     name: str
@@ -250,6 +266,23 @@ class Plant:
             self.packet_cooldown += exceeded_sun_cost * 10
         self.packet_cooldown = min(round(self.packet_cooldown), 50000)
 
+        #Clamp stats to any configured randomisation ranges for this plant
+        limits = getattr(world, "plant_stat_limits", {}).get(self.name, {})
+        if limits:
+            if self.firing_cooldown != -1:
+                min_mult, max_mult = get_stat_limit_multipliers(limits, "firing_cooldown")
+                self.firing_cooldown = round(clamp_stat(self.firing_cooldown, self.unmodified.firing_cooldown, min_mult, max_mult))
+            if not self.invincible:
+                min_mult, max_mult = get_stat_limit_multipliers(limits, "health")
+                self.health = round(clamp_stat(self.health, self.unmodified.health, min_mult, max_mult))
+            if self.unmodified.cost > 0:
+                min_mult, max_mult = get_stat_limit_multipliers(limits, "sun_cost")
+                clamped_cost = clamp_stat(self.cost, self.unmodified.cost, min_mult, max_mult)
+                if clamped_cost != self.cost:
+                    self.cost = max(5, round_to_five(clamped_cost))
+            min_mult, max_mult = get_stat_limit_multipliers(limits, "recharge")
+            self.packet_cooldown = max(100, round(clamp_stat(self.packet_cooldown, self.unmodified.packet_cooldown, min_mult, max_mult)))
+
         if (maintain_plantability and not self.is_plantable()) or (ensure_usability and not self.is_usable(world)):
             self.randomise(world, ensure_usability, maintain_plantability)
 
@@ -264,7 +297,7 @@ class Projectile:
     def __post_init__(self):
         self.unmodified = copy.deepcopy(self)
 
-    def randomise(self, world, ensure_usability, maintain_plantability):
+    def randomise(self, world, ensure_usability, maintain_plantability, damage_limits = (None, None)):
         maximum_damage_mult_gain = 10
         maximum_damage_mult_loss = 0.9
         if ensure_usability:
@@ -276,6 +309,13 @@ class Projectile:
             damage_mult = 1 + (weighted_roll(world, maximum_damage_mult_gain * 100, 2) / 100)
         else: #Nerf
             damage_mult = 1 - (weighted_roll(world, maximum_damage_mult_loss * 100, 2) / 100)
+
+        #Clamp the multiplier to the strictest configured damage range among the plants that use this projectile
+        min_mult, max_mult = damage_limits
+        if min_mult is not None:
+            damage_mult = max(damage_mult, min_mult)
+        if max_mult is not None:
+            damage_mult = min(damage_mult, max_mult)
 
         self.damage = round(self.unmodified.damage * damage_mult)
 
@@ -346,6 +386,23 @@ def create_projectiles():
     }
 
 def randomise_plant_stats(world):
+    #Store the per-plant stat randomisation ranges so they can be applied while randomising
+    world.plant_stat_limits = {plant_name: dict(stat_limits) for plant_name, stat_limits in world.options.plant_stat_randomisation_ranges.value.items()}
+
+    #Determine damage limits for each projectile - if multiple plants share a projectile, the strictest limits win
+    projectile_damage_limits = {}
+    for plant_name in world.all_plants:
+        min_mult, max_mult = get_stat_limit_multipliers(world.plant_stat_limits.get(plant_name, {}), "damage")
+        if min_mult is None and max_mult is None:
+            continue
+        for projectile_name in world.all_plants[plant_name].projectiles:
+            existing_min, existing_max = projectile_damage_limits.get(projectile_name, (None, None))
+            if min_mult is not None:
+                existing_min = min_mult if existing_min is None else max(existing_min, min_mult)
+            if max_mult is not None:
+                existing_max = max_mult if existing_max is None else min(existing_max, max_mult)
+            projectile_damage_limits[projectile_name] = (existing_min, existing_max)
+
     #Loop through all levels and create a list of plants that are deemed as progression - these will be randomised in such a way that they remain usable
     used_plants = {"standard": [], "conveyor": []}
     potential_progression_plants = []
@@ -404,7 +461,7 @@ def randomise_plant_stats(world):
     if not world.options.maintain_vanilla_projectile_strength.value:
         for projectile in world.all_projectiles:
             if not projectile in projectile_blacklist:
-                world.all_projectiles[projectile].randomise(world, projectile in usable_projectiles, projectile in plantable_projectiles)
+                world.all_projectiles[projectile].randomise(world, projectile in usable_projectiles, projectile in plantable_projectiles, projectile_damage_limits.get(projectile, (None, None)))
 
     if (not any(plant in usable_plants for plant in ["Wall-nut", "Tall-nut", "Pumpkin"])) or not any(plant in plantable_plants for plant in ["Wall-nut", "Tall-nut", "Pumpkin"]):
         guaranteed_wall = world.random.choice(["Wall-nut", "Tall-nut", "Pumpkin"])

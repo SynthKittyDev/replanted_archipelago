@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Options import Choice, Range, Toggle, PerGameCommonOptions, DeathLink, OptionCounter, OptionGroup, OptionSet
+from Options import Choice, Range, Toggle, PerGameCommonOptions, DeathLink, OptionCounter, OptionGroup, OptionSet, OptionDict, OptionError
 
 class AdventureModeProgression(Choice):
     """
@@ -154,6 +154,46 @@ class PlantStatRandomisationBlacklist(OptionSet):
     """
     display_name = "Plant Stat Randomisation Blacklist"
     valid_keys = ["Peashooter", "Sunflower", "Cherry Bomb", "Wall-nut", "Potato Mine", "Snow Pea", "Chomper", "Repeater", "Puff-shroom", "Sun-shroom", "Fume-shroom", "Grave Buster", "Hypno-shroom", "Scaredy-shroom", "Ice-shroom", "Doom-shroom", "Lily Pad", "Squash", "Threepeater", "Tangle Kelp", "Jalapeno", "Spikeweed", "Torchwood", "Tall-nut", "Sea-shroom", "Plantern", "Cactus", "Blover", "Split Pea", "Starfruit", "Pumpkin", "Magnet-shroom", "Cabbage-pult", "Flower Pot", "Kernel-pult", "Coffee Bean", "Garlic", "Umbrella Leaf", "Marigold", "Melon-pult", "Gatling Pea", "Twin Sunflower", "Gloom-shroom", "Cattail", "Winter Melon", "Gold Magnet", "Spikerock", "Cob Cannon"]
+
+class PlantStatRandomisationRanges(OptionDict):
+    """
+    Optionally limits how far plant stat randomisation can move each stat away from its vanilla value, on a per plant basis.
+    By default this is empty, meaning all plants are randomised with the usual unrestricted behaviour.
+
+    Each entry maps a plant name to a dictionary of percentage limits. Available limit keys are:
+    "damage_up", "damage_down", "health_up", "health_down", "sun_cost_up", "sun_cost_down", "recharge_up", "recharge_down", "firing_cooldown_up", "firing_cooldown_down"
+
+    Each "_up" value limits how many percent the stat can increase above its vanilla value, and each "_down" value limits how many percent it can decrease below it.
+    Note that "up" always refers to the stat's number increasing - so "firing_cooldown_up" limits how much SLOWER a plant can fire, and "recharge_up" limits how much LONGER its packet recharge can become.
+    Any limit key that is not specified remains unrestricted. Setting both "_up" and "_down" of a stat to 0 locks that stat to its vanilla value.
+    Damage limits apply to the plant's projectiles - if multiple plants share a projectile (e.g. Peashooter and Repeater both fire Peas), the strictest limits among those plants are used.
+
+    Example:
+    plant_stat_randomisation_ranges:
+      Peashooter:
+        damage_up: 20
+        damage_down: 20
+        health_up: 50
+        health_down: 50
+
+    This option only matters if plant_stat_randomisation is set to true.
+    Valid plant names are the same as those listed for plant_stat_randomisation_blacklist.
+    """
+    display_name = "Plant Stat Randomisation Ranges"
+    valid_keys = ["Peashooter", "Sunflower", "Cherry Bomb", "Wall-nut", "Potato Mine", "Snow Pea", "Chomper", "Repeater", "Puff-shroom", "Sun-shroom", "Fume-shroom", "Grave Buster", "Hypno-shroom", "Scaredy-shroom", "Ice-shroom", "Doom-shroom", "Lily Pad", "Squash", "Threepeater", "Tangle Kelp", "Jalapeno", "Spikeweed", "Torchwood", "Tall-nut", "Sea-shroom", "Plantern", "Cactus", "Blover", "Split Pea", "Starfruit", "Pumpkin", "Magnet-shroom", "Cabbage-pult", "Flower Pot", "Kernel-pult", "Coffee Bean", "Garlic", "Umbrella Leaf", "Marigold", "Melon-pult", "Gatling Pea", "Twin Sunflower", "Gloom-shroom", "Cattail", "Winter Melon", "Gold Magnet", "Spikerock", "Cob Cannon"]
+    valid_stat_keys = ["damage_up", "damage_down", "health_up", "health_down", "sun_cost_up", "sun_cost_down", "recharge_up", "recharge_down", "firing_cooldown_up", "firing_cooldown_down"]
+    default = {}
+
+    def verify(self, *args, **kwargs) -> None:
+        super().verify(*args, **kwargs)
+        for plant_name, stat_limits in self.value.items():
+            if not isinstance(stat_limits, dict):
+                raise OptionError(f"plant_stat_randomisation_ranges entry for '{plant_name}' must be a dictionary of stat limits, e.g. {{damage_up: 20, damage_down: 20}}")
+            for stat_key, percentage in stat_limits.items():
+                if stat_key not in self.valid_stat_keys:
+                    raise OptionError(f"plant_stat_randomisation_ranges entry for '{plant_name}' contains invalid stat key '{stat_key}'. Valid keys are: {', '.join(self.valid_stat_keys)}")
+                if not isinstance(percentage, (int, float)) or isinstance(percentage, bool) or percentage < 0:
+                    raise OptionError(f"plant_stat_randomisation_ranges entry for '{plant_name}' has an invalid value for '{stat_key}'. Limits must be numbers greater than or equal to 0.")
 
 class MinigameLevels(Choice):
     """
@@ -868,6 +908,7 @@ class PVZROptions(PerGameCommonOptions):
     plant_stat_randomisation: PlantStatRandomisation
     maintain_vanilla_projectile_strength: MaintainVanillaProjectileStrength
     plant_stat_randomisation_blacklist: PlantStatRandomisationBlacklist
+    plant_stat_randomisation_ranges: PlantStatRandomisationRanges
     lock_conveyor_plants: LockConveyorPlants
     lock_vasebreaker_plants: LockVasebreakerPlants
     lock_izombie_zombies: LockIZombieZombies
@@ -907,7 +948,7 @@ OPTION_GROUPS = [
     OptionGroup("Level Access", [AdventureModeProgression, MinigameLevels, PuzzleLevels, SurvivalLevels, CloudyDayLevels, BonusLevels, ChinaLevel]),    
     OptionGroup("Extra Locations", [HugeWaveLocations, WavesanityLocations, ShopBehaviour, ShopItems]),
     OptionGroup("Goal", [AdventureLevelsGoal, AdventureAreasGoal, MinigameLevelsGoal, PuzzleLevelsGoal, SurvivalLevelsGoal, CloudyDayLevelsGoal, BonusLevelsGoal, TotalLevelsGoal, TacoHuntItems, TacoHuntPercentage, FastGoal]),
-    OptionGroup("Zombie & Plant Randomisation", [ConveyorRandomisation, ZombieRandomisation, RandomisedZombies, ZombieRandomisedModes, ZombieWeightRandomisation, PlantStatRandomisation, MaintainVanillaProjectileStrength, PlantStatRandomisationBlacklist]),
+    OptionGroup("Zombie & Plant Randomisation", [ConveyorRandomisation, ZombieRandomisation, RandomisedZombies, ZombieRandomisedModes, ZombieWeightRandomisation, PlantStatRandomisation, MaintainVanillaProjectileStrength, PlantStatRandomisationBlacklist, PlantStatRandomisationRanges]),
     OptionGroup("Game Tweaks", [LockConveyorPlants, LockVasebreakerPlants, LockIZombieZombies, EasyUpgradePlants, ImitaterBehaviour, DisableStormFlashes, MusicShuffle, CostumeChances]),
     OptionGroup("Item Generation", [ZenGardenItems, StartingSunUpgrades, MaximumSunUpgrades, MowerRewardUpgrades, RandomSeedFiller, ZombieFreezeFiller, ZombieHypnosisFiller, SunBurstFiller, StartingPlants, StartingSeedSlots, EarlySunflower, EarlyShovel, EarlyZenGarden, ProgressiveSunCapacityItems, IndividualTileUnlockItems]),
     OptionGroup("Traps", [TrapPercentage, MowerDeployTrapWeight, SeedPacketCooldownTrapWeight, ZombieAmbushTrapWeight, ZombieShuffleTrapWeight, ZombieCaffeineTrapWeight, RVTrapWeight, CraterTrapWeight, LawnFlipTrapWeight, LawnRandomiserTrapWeight]),
