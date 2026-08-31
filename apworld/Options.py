@@ -157,9 +157,9 @@ class PlantStatRandomisationBlacklist(OptionSet):
 
 class PlantStatRandomisationRange(Toggle):
     """
-    Limits plant stat randomisation to a global range around each stat's vanilla value.
-    If this option is enabled, every randomised stat (Sun Cost, Packet Refresh Time, Toughness, Firing Rate and Projectile Damage)
-    will be clamped between the percentages set by plant_stat_randomisation_maximum_decrease and plant_stat_randomisation_maximum_increase.
+    Limits plant stat randomisation to a range around each stat's vanilla value.
+    If this option is enabled, every randomised stat (Sun Cost, Packet Refresh Time, Toughness, Firing Cooldown and Projectile Damage)
+    will be clamped between the percentages set by that stat's maximum decrease and maximum increase options below.
     If this option is disabled, plant stat randomisation behaves as usual with its full default ranges.
 
     This option only matters if plant_stat_randomisation is set to true.
@@ -168,26 +168,120 @@ class PlantStatRandomisationRange(Toggle):
     display_name = "Plant Stat Randomisation Range"
     default = False
 
-class PlantStatRandomisationMaximumDecrease(Range):
+class SunCostMaximumDecrease(Range):
     """
-    The maximum percentage that a randomised plant stat can decrease below its vanilla value.
-    For example, a value of 20 means no stat can drop below 80% of its vanilla value.
+    The maximum percentage that a randomised plant's sun cost can decrease below its vanilla value.
+    For example, a value of 20 means a plant's sun cost cannot drop below 80% of its vanilla value.
 
     This option only matters if both plant_stat_randomisation and plant_stat_randomisation_range are set to true.
     """
-    display_name = "Plant Stat Randomisation Maximum Decrease"
+    display_name = "Sun Cost Maximum Decrease"
     range_start = 0
     range_end = 100
     default = 20
 
-class PlantStatRandomisationMaximumIncrease(Range):
+class SunCostMaximumIncrease(Range):
     """
-    The maximum percentage that a randomised plant stat can increase above its vanilla value.
-    For example, a value of 50 means no stat can rise above 150% of its vanilla value.
+    The maximum percentage that a randomised plant's sun cost can increase above its vanilla value.
+    For example, a value of 50 means a plant's sun cost cannot rise above 150% of its vanilla value.
 
     This option only matters if both plant_stat_randomisation and plant_stat_randomisation_range are set to true.
     """
-    display_name = "Plant Stat Randomisation Maximum Increase"
+    display_name = "Sun Cost Maximum Increase"
+    range_start = 0
+    range_end = 1000
+    default = 50
+
+class PacketRefreshMaximumDecrease(Range):
+    """
+    The maximum percentage that a randomised plant's packet refresh time (recharge) can decrease below its vanilla value.
+    A decreased packet refresh time means the plant recharges faster.
+
+    This option only matters if both plant_stat_randomisation and plant_stat_randomisation_range are set to true.
+    """
+    display_name = "Packet Refresh Time Maximum Decrease"
+    range_start = 0
+    range_end = 100
+    default = 20
+
+class PacketRefreshMaximumIncrease(Range):
+    """
+    The maximum percentage that a randomised plant's packet refresh time (recharge) can increase above its vanilla value.
+    An increased packet refresh time means the plant recharges slower.
+
+    This option only matters if both plant_stat_randomisation and plant_stat_randomisation_range are set to true.
+    """
+    display_name = "Packet Refresh Time Maximum Increase"
+    range_start = 0
+    range_end = 1000
+    default = 50
+
+class ToughnessMaximumDecrease(Range):
+    """
+    The maximum percentage that a randomised plant's toughness (health) can decrease below its vanilla value.
+
+    This option only matters if both plant_stat_randomisation and plant_stat_randomisation_range are set to true.
+    """
+    display_name = "Toughness Maximum Decrease"
+    range_start = 0
+    range_end = 100
+    default = 20
+
+class ToughnessMaximumIncrease(Range):
+    """
+    The maximum percentage that a randomised plant's toughness (health) can increase above its vanilla value.
+
+    This option only matters if both plant_stat_randomisation and plant_stat_randomisation_range are set to true.
+    """
+    display_name = "Toughness Maximum Increase"
+    range_start = 0
+    range_end = 1000
+    default = 50
+
+class FiringCooldownMaximumDecrease(Range):
+    """
+    The maximum percentage that a randomised plant's firing cooldown can decrease below its vanilla value.
+    A decreased firing cooldown means the plant attacks faster.
+
+    This option only matters if both plant_stat_randomisation and plant_stat_randomisation_range are set to true.
+    """
+    display_name = "Firing Cooldown Maximum Decrease"
+    range_start = 0
+    range_end = 100
+    default = 20
+
+class FiringCooldownMaximumIncrease(Range):
+    """
+    The maximum percentage that a randomised plant's firing cooldown can increase above its vanilla value.
+    An increased firing cooldown means the plant attacks slower.
+
+    This option only matters if both plant_stat_randomisation and plant_stat_randomisation_range are set to true.
+    """
+    display_name = "Firing Cooldown Maximum Increase"
+    range_start = 0
+    range_end = 1000
+    default = 50
+
+class ProjectileDamageMaximumDecrease(Range):
+    """
+    The maximum percentage that a randomised projectile's damage can decrease below its vanilla value.
+
+    This option only matters if both plant_stat_randomisation and plant_stat_randomisation_range are set to true.
+    If maintain_vanilla_projectile_strength is set to true then projectile damage is never randomised and this option is irrelevant.
+    """
+    display_name = "Projectile Damage Maximum Decrease"
+    range_start = 0
+    range_end = 100
+    default = 20
+
+class ProjectileDamageMaximumIncrease(Range):
+    """
+    The maximum percentage that a randomised projectile's damage can increase above its vanilla value.
+
+    This option only matters if both plant_stat_randomisation and plant_stat_randomisation_range are set to true.
+    If maintain_vanilla_projectile_strength is set to true then projectile damage is never randomised and this option is irrelevant.
+    """
+    display_name = "Projectile Damage Maximum Increase"
     range_start = 0
     range_end = 1000
     default = 50
@@ -906,8 +1000,16 @@ class PVZROptions(PerGameCommonOptions):
     maintain_vanilla_projectile_strength: MaintainVanillaProjectileStrength
     plant_stat_randomisation_blacklist: PlantStatRandomisationBlacklist
     plant_stat_randomisation_range: PlantStatRandomisationRange
-    plant_stat_randomisation_maximum_decrease: PlantStatRandomisationMaximumDecrease
-    plant_stat_randomisation_maximum_increase: PlantStatRandomisationMaximumIncrease
+    sun_cost_maximum_decrease: SunCostMaximumDecrease
+    sun_cost_maximum_increase: SunCostMaximumIncrease
+    packet_refresh_maximum_decrease: PacketRefreshMaximumDecrease
+    packet_refresh_maximum_increase: PacketRefreshMaximumIncrease
+    toughness_maximum_decrease: ToughnessMaximumDecrease
+    toughness_maximum_increase: ToughnessMaximumIncrease
+    firing_cooldown_maximum_decrease: FiringCooldownMaximumDecrease
+    firing_cooldown_maximum_increase: FiringCooldownMaximumIncrease
+    projectile_damage_maximum_decrease: ProjectileDamageMaximumDecrease
+    projectile_damage_maximum_increase: ProjectileDamageMaximumIncrease
     lock_conveyor_plants: LockConveyorPlants
     lock_vasebreaker_plants: LockVasebreakerPlants
     lock_izombie_zombies: LockIZombieZombies
@@ -947,7 +1049,7 @@ OPTION_GROUPS = [
     OptionGroup("Level Access", [AdventureModeProgression, MinigameLevels, PuzzleLevels, SurvivalLevels, CloudyDayLevels, BonusLevels, ChinaLevel]),    
     OptionGroup("Extra Locations", [HugeWaveLocations, WavesanityLocations, ShopBehaviour, ShopItems]),
     OptionGroup("Goal", [AdventureLevelsGoal, AdventureAreasGoal, MinigameLevelsGoal, PuzzleLevelsGoal, SurvivalLevelsGoal, CloudyDayLevelsGoal, BonusLevelsGoal, TotalLevelsGoal, TacoHuntItems, TacoHuntPercentage, FastGoal]),
-    OptionGroup("Zombie & Plant Randomisation", [ConveyorRandomisation, ZombieRandomisation, RandomisedZombies, ZombieRandomisedModes, ZombieWeightRandomisation, PlantStatRandomisation, MaintainVanillaProjectileStrength, PlantStatRandomisationBlacklist, PlantStatRandomisationRange, PlantStatRandomisationMaximumDecrease, PlantStatRandomisationMaximumIncrease]),
+    OptionGroup("Zombie & Plant Randomisation", [ConveyorRandomisation, ZombieRandomisation, RandomisedZombies, ZombieRandomisedModes, ZombieWeightRandomisation, PlantStatRandomisation, MaintainVanillaProjectileStrength, PlantStatRandomisationBlacklist, PlantStatRandomisationRange, SunCostMaximumDecrease, SunCostMaximumIncrease, PacketRefreshMaximumDecrease, PacketRefreshMaximumIncrease, ToughnessMaximumDecrease, ToughnessMaximumIncrease, FiringCooldownMaximumDecrease, FiringCooldownMaximumIncrease, ProjectileDamageMaximumDecrease, ProjectileDamageMaximumIncrease]),
     OptionGroup("Game Tweaks", [LockConveyorPlants, LockVasebreakerPlants, LockIZombieZombies, EasyUpgradePlants, ImitaterBehaviour, DisableStormFlashes, MusicShuffle, CostumeChances]),
     OptionGroup("Item Generation", [ZenGardenItems, StartingSunUpgrades, MaximumSunUpgrades, MowerRewardUpgrades, RandomSeedFiller, ZombieFreezeFiller, ZombieHypnosisFiller, SunBurstFiller, StartingPlants, StartingSeedSlots, EarlySunflower, EarlyShovel, EarlyZenGarden, ProgressiveSunCapacityItems, IndividualTileUnlockItems]),
     OptionGroup("Traps", [TrapPercentage, MowerDeployTrapWeight, SeedPacketCooldownTrapWeight, ZombieAmbushTrapWeight, ZombieShuffleTrapWeight, ZombieCaffeineTrapWeight, RVTrapWeight, CraterTrapWeight, LawnFlipTrapWeight, LawnRandomiserTrapWeight]),

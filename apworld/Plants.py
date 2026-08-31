@@ -9,12 +9,12 @@ def weighted_roll(world, max_value, power): #Rolls a number between 0 and a max 
 def round_to_five(number):
     return round(number / 5) * 5
 
-def apply_global_stat_range(world, value, unmodified_value): #Clamps a randomised stat to the global randomisation range, if enabled
+def apply_stat_range(world, value, unmodified_value, maximum_decrease, maximum_increase): #Clamps a randomised stat to its randomisation range, if enabled
     if not world.options.plant_stat_randomisation_range.value:
         return value
 
-    minimum = unmodified_value * (1 - world.options.plant_stat_randomisation_maximum_decrease.value / 100)
-    maximum = unmodified_value * (1 + world.options.plant_stat_randomisation_maximum_increase.value / 100)
+    minimum = unmodified_value * (1 - maximum_decrease / 100)
+    maximum = unmodified_value * (1 + maximum_increase / 100)
     return round(min(max(value, minimum), maximum))
 
 @dataclass
@@ -258,14 +258,18 @@ class Plant:
             self.packet_cooldown += exceeded_sun_cost * 10
         self.packet_cooldown = min(round(self.packet_cooldown), 50000)
 
-        #Apply the global randomisation range, if enabled
+        #Apply the per-stat randomisation ranges, if enabled
         if world.options.plant_stat_randomisation_range.value:
             if self.firing_cooldown != -1:
-                self.firing_cooldown = apply_global_stat_range(world, self.firing_cooldown, self.unmodified.firing_cooldown)
+                self.firing_cooldown = apply_stat_range(world, self.firing_cooldown, self.unmodified.firing_cooldown,
+                    world.options.firing_cooldown_maximum_decrease.value, world.options.firing_cooldown_maximum_increase.value)
             if not self.invincible:
-                self.health = apply_global_stat_range(world, self.health, self.unmodified.health)
-            self.cost = round_to_five(apply_global_stat_range(world, self.cost, self.unmodified.cost))
-            self.packet_cooldown = max(100, apply_global_stat_range(world, self.packet_cooldown, self.unmodified.packet_cooldown))
+                self.health = apply_stat_range(world, self.health, self.unmodified.health,
+                    world.options.toughness_maximum_decrease.value, world.options.toughness_maximum_increase.value)
+            self.cost = round_to_five(apply_stat_range(world, self.cost, self.unmodified.cost,
+                world.options.sun_cost_maximum_decrease.value, world.options.sun_cost_maximum_increase.value))
+            self.packet_cooldown = max(100, apply_stat_range(world, self.packet_cooldown, self.unmodified.packet_cooldown,
+                world.options.packet_refresh_maximum_decrease.value, world.options.packet_refresh_maximum_increase.value))
 
         if (maintain_plantability and not self.is_plantable()) or (ensure_usability and not self.is_usable(world)):
             self.randomise(world, ensure_usability, maintain_plantability)
@@ -294,7 +298,8 @@ class Projectile:
         else: #Nerf
             damage_mult = 1 - (weighted_roll(world, maximum_damage_mult_loss * 100, 2) / 100)
 
-        self.damage = apply_global_stat_range(world, round(self.unmodified.damage * damage_mult), self.unmodified.damage)
+        self.damage = apply_stat_range(world, round(self.unmodified.damage * damage_mult), self.unmodified.damage,
+            world.options.projectile_damage_maximum_decrease.value, world.options.projectile_damage_maximum_increase.value)
 
 def create_plants():
     return {
